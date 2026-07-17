@@ -1,219 +1,370 @@
 # Activity Diagram
+## Longitudinal Student Academic Record Berbasis Artificial Intelligence
 
-## Activity 1
-### Login
-
-Start
-
-↓
-
-Masukkan Email
-
-↓
-
-Masukkan Password
-
-↓
-
-Validasi Akun
-
-↓
-
-[Valid]
-
-Masuk Dashboard
-
-↓
-
-End
-
-[Invalid]
-
-Tampilkan Pesan Error
-
-↓
-
-Kembali Login
+Pendahuluan: Activity Diagram berikut menggambarkan alur kerja sistem menggunakan pendekatan swimlane. Setiap diagram memisahkan tanggung jawab aktor (User) dan sistem (System) dalam setiap proses.
 
 ---
 
-## Activity 2
-### Input Data Akademik
+## Activity 1: Login
 
-Start
-
-↓
-
-Pilih Kelas
-
-↓
-
-Pilih Siswa
-
-↓
-
-Input Nilai
-
-↓
-
-Input Kehadiran
-
-↓
-
-Input Prestasi
-
-↓
-
-Input Data Kesehatan
-
-↓
-
-Input Catatan Guru
-
-↓
-
-Validasi Data
-
-↓
-
-Simpan Database
-
-↓
-
-End
+```
+┌─────────────────────────────────────┬──────────────────────────────────┐
+│             User                    │            System                │
+├─────────────────────────────────────┼──────────────────────────────────┤
+│                                     │                                  │
+│   Start                             │                                  │
+│     │                               │                                  │
+│     ▼                               │                                  │
+│   Input username & password         │                                  │
+│     │                               │                                  │
+│     └───────────────────────────────→  Validasi akun                   │
+│                                       │                                │
+│                                  ┌────┴────┐                           │
+│                                  │  Valid  │                           │
+│                                  └────┬────┘                           │
+│                                       │                                │
+│                                       ▼                               │
+│                                     Generate JWT token                 │
+│                                       │                                │
+│                                       ▼                               │
+│   ←───────────────────────────────  Dashboard                         │
+│     │                               │                                  │
+│     ▼                               │                                  │
+│   Akses fitur sesuai role            │                                  │
+│     │                               │                                  │
+│     ▼                               │                                  │
+│   End                               │                                  │
+│                                     │                                  │
+│   [Invalid]                         │                                  │
+│     │                               │                                  │
+│     ←────────────────────────────── Tampilkan pesan error             │
+│     │                               │                                  │
+│     ▼                               │                                  │
+│   Kembali ke form login             │                                  │
+│                                     │                                  │
+└─────────────────────────────────────┴──────────────────────────────────┘
+```
 
 ---
 
-## Activity 3
-### Generate AI Student Summary
+## Activity 2: Input Data Akademik
 
-Start
-
-↓
-
-Pilih Siswa
-
-↓
-
-Ambil Riwayat Akademik
-
-↓
-
-AI Memproses Data
-
-↓
-
-Generate Student Summary
-
-↓
-
-Guru Review
-
-↓
-
-Simpan
-
-↓
-
-End
-
----
-
-## Activity 4
-### Generate Draft Deskripsi Rapor
-
-Start
-
-↓
-
-Pilih Siswa
-
-↓
-
-Ambil Nilai
-
-↓
-
-Ambil Catatan Guru
-
-↓
-
-AI Membuat Draft
-
-↓
-
-Guru Edit
-
-↓
-
-Simpan
-
-↓
-
-End
+```
+┌─────────────────────────────────────┬──────────────────────────────────┬─────────────────────┐
+│             Guru                    │            System                │     Database        │
+├─────────────────────────────────────┼──────────────────────────────────┼─────────────────────┤
+│                                     │                                  │                     │
+│   Start                             │                                  │                     │
+│     │                               │                                  │                     │
+│     ▼                               │                                  │                     │
+│   Pilih kelas                       │                                  │                     │
+│     │                               │                                  │                     │
+│     ▼                               │                                  │                     │
+│   Pilih siswa                       │                                  │                     │
+│     │                               │                                  │                     │
+│     ▼                               │                                  │                     │
+│   Pilih semester                    │                                  │                     │
+│     │                               │                                  │                     │
+│     ▼                               │                                  │                     │
+│   Input data akademik:              │                                  │                     │
+│   • Nilai (pengetahuan & skill)     │                                  │                     │
+│   • Kehadiran (sakit/izin/alpha)    │                                  │                     │
+│   • Prestasi                        │                                  │                     │
+│   • Data kesehatan                  │                                  │                     │
+│   • Catatan                         │                                  │                     │
+│     │                               │                                  │                     │
+│     └───────────────────────────────→  Validasi data                   │                     │
+│                                       │                                │                     │
+│                                       ▼                               │                     │
+│                                     Cek hak akses                      │                     │
+│                                       │                                │                     │
+│                                  ┌────┴────┐                           │                     │
+│                                  │  Valid  │                           │                     │
+│                                  └────┬────┘                           │                     │
+│                                       │                                │                     │
+│                                       ▼                               │                     │
+│                                     Simpan data ───────────────────────→ INSERT / UPSERT    │
+│                                       │                                │                     │
+│                                       │◄─────────────────────────────── Success             │
+│                                       │                                │                     │
+│   ←───────────────────────────────  Data tersimpan                    │                     │
+│     │                               │                                  │                     │
+│     ▼                               │                                  │                     │
+│   End                               │                                  │                     │
+│                                     │                                  │                     │
+│   [Tidak memiliki akses]            │                                  │                     │
+│     │                               │                                  │                     │
+│     ←────────────────────────────── Tampilkan error 403               │                     │
+│                                     │                                  │                     │
+└─────────────────────────────────────┴──────────────────────────────────┴─────────────────────┘
+```
 
 ---
 
-## Activity 5
-### Generate Student Transition Summary
+## Activity 3: Generate AI Student Summary
 
-Start
-
-↓
-
-Pilih Siswa
-
-↓
-
-Ambil Riwayat Semester
-
-↓
-
-AI Merangkum
-
-↓
-
-Generate Transition Summary
-
-↓
-
-Guru Review
-
-↓
-
-Simpan
-
-↓
-
-End
+```
+┌─────────────────────────────┬─────────────────────────────────┬──────────────────┬────────────┐
+│           Guru              │           System                │    Database      │  AI/LLM   │
+├─────────────────────────────┼─────────────────────────────────┼──────────────────┼────────────┤
+│                             │                                 │                  │            │
+│  Start                      │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    ▼                        │                                 │                  │            │
+│  Pilih siswa                │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    └────────────────────────→  Terima request                 │                  │            │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Ambil riwayat akademik ─────────────→ SELECT data     │            │
+│                              │                                 │                  │            │
+│                              │◄──────────────────────────────── Riwayat lengkap  │            │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Susun prompt terstruktur           │                  │            │
+│                              │                                 │                  │            │
+│                              └───────────────────────────────────────────────────→ Generate  │
+│                              │                                 │                  │            │
+│                              │◄─────────────────────────────────────────────────── Narasi    │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Simpan sebagai draft ───────────────→ INSERT          │            │
+│                              │   (AiSummary, isFinal=false)    │  AiSummary      │            │
+│                              │                                 │                  │            │
+│  ←────────────────────────── Tampilkan hasil                   │                  │            │
+│    │                        │                                 │                  │            │
+│    ▼                        │                                 │                  │            │
+│  Review hasil AI            │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    ├── [Terima] ────────────→  Update isFinal=true ───────────→ UPDATE           │            │
+│    │                        │                                 │                  │            │
+│    ├── [Edit] ──────────────→  Simpan hasil edit ─────────────→ UPDATE           │            │
+│    │                        │                                 │                  │            │
+│    └── [Regenerate] ────────→  Ulangi dari ambil riwayat       │                  │            │
+│                              │   (version++) ─────────────────→ INSERT (v2)      │            │
+│                              │                                 │                  │            │
+│  End                        │                                 │                  │            │
+│                             │                                 │                  │            │
+└─────────────────────────────┴─────────────────────────────────┴──────────────────┴────────────┘
+```
 
 ---
 
-## Activity 6
-### Preview Buku Induk
+## Activity 4: Generate AI Draft Deskripsi Rapor
 
-Start
+```
+┌─────────────────────────────┬─────────────────────────────────┬──────────────────┬────────────┐
+│           Guru              │           System                │    Database      │  AI/LLM   │
+├─────────────────────────────┼─────────────────────────────────┼──────────────────┼────────────┤
+│                             │                                 │                  │            │
+│  Start                      │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    ▼                        │                                 │                  │            │
+│  Pilih siswa & semester     │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    └────────────────────────→  Ambil nilai & catatan          │                  │            │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Ambil SubjectScore ─────────────────→ SELECT          │            │
+│                              │                                 │                  │            │
+│                            Ambil Catatan Guru                 │                  │            │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Ambil deskripsi sebelumnya ─────────→ SELECT          │            │
+│                              │   (AiSummary DRAFT_DESCRIPTION) │                  │            │
+│                              │                                 │                  │            │
+│                              └───────────────────────────────────────────────────→ Generate  │
+│                              │                                 │                  │  draft    │
+│                              │◄─────────────────────────────────────────────────── Draft     │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Simpan draft ──────────────────────→ INSERT          │            │
+│                              │   (summaryType=DRAFT_DESCRIPTION)│  AiSummary      │            │
+│                              │                                 │                  │            │
+│  ←────────────────────────── Tampilkan draft                   │                  │            │
+│    │                        │                                 │                  │            │
+│    ▼                        │                                 │                  │            │
+│  Edit draft                 │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    └────────────────────────→  Simpan ─────────────────────────→ UPDATE          │            │
+│                              │   (isFinal=true)                │                  │            │
+│                              │                                 │                  │            │
+│  End                        │                                 │                  │            │
+│                             │                                 │                  │            │
+└─────────────────────────────┴─────────────────────────────────┴──────────────────┴────────────┘
+```
 
-↓
+---
 
-Pilih Siswa
+## Activity 5: Generate AI Student Transition Summary
 
-↓
+```
+┌─────────────────────────────┬─────────────────────────────────┬──────────────────┬────────────┐
+│           Guru              │           System                │    Database      │  AI/LLM   │
+├─────────────────────────────┼─────────────────────────────────┼──────────────────┼────────────┤
+│                             │                                 │                  │            │
+│  Start                      │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    ▼                        │                                 │                  │            │
+│  Pilih kelas (seluruh siswa)│                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    └────────────────────────→  Ambil seluruh SemesterRecord   │                  │            │
+│                              │   milik setiap siswa           │                  │            │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Join data akademik ─────────────────→ SELECT          │            │
+│                              │  (nilai, prestasi, kehadiran,   │  multi-table    │            │
+│                              │   catatan dari semua semester)  │                  │            │
+│                              │                                 │                  │            │
+│                              └───────────────────────────────────────────────────→ Generate  │
+│                              │                                 │                  │  summary  │
+│                              │◄─────────────────────────────────────────────────── Ringkasan │
+│                              │                                 │                  │            │
+│                              ▼                                │                  │            │
+│                            Simpan per siswa ───────────────────→ INSERT per      │            │
+│                              │  (summaryType=TRANSITION_SUMMARY)|  AiSummary      │            │
+│                              │                                 │                  │            │
+│  ←────────────────────────── Tampilkan ringkasan               │                  │            │
+│    │                        │                                 │                  │            │
+│    ▼                        │                                 │                  │            │
+│  Review & simpan            │                                 │                  │            │
+│    │                        │                                 │                  │            │
+│    ▼                        │                                 │                  │            │
+│  End                        │                                 │                  │            │
+└─────────────────────────────┴─────────────────────────────────┴──────────────────┴────────────┘
+```
 
-Ambil Seluruh Data
+---
 
-↓
+## Activity 6: Preview Buku Induk
 
-Susun Format Buku Induk
+```
+┌─────────────────────────────┬─────────────────────────────────┬──────────────────┐
+│           Guru              │           System                │    Database      │
+├─────────────────────────────┼─────────────────────────────────┼──────────────────┤
+│                             │                                 │                  │
+│  Start                      │                                 │                  │
+│    │                        │                                 │                  │
+│    ▼                        │                                 │                  │
+│  Pilih siswa                │                                 │                  │
+│    │                        │                                 │                  │
+│    └────────────────────────→  Ambil seluruh data siswa       │                  │
+│                              │                                 │                  │
+│                              ▼                                │                  │
+│                            Ambil biodata ─────────────────────→ SELECT Student  │
+│                              │                                 │                  │
+│                            Ambil seluruh SemesterRecord       │                  │
+│                              │  ──────────────────────────────→ SELECT           │
+│                              │                                 │  SemesterRecord │
+│                              ▼                                │   + join ke     │
+│                            Ambil nilai setiap semester         │  SubjectScore,  │
+│                              │  ──────────────────────────────→  Attendance,    │
+│                              │                                 │  Achievement,   │
+│                            Ambil kehadiran                     │  HealthRecord   │
+│                              │  ──────────────────────────────→                  │
+│                            Ambil prestasi                    │                  │
+│                              │  ──────────────────────────────→                  │
+│                            Ambil data kesehatan              │                  │
+│                              │  ──────────────────────────────→                  │
+│                              │                                 │                  │
+│                              ▼                                │                  │
+│                            Susun format Buku Induk             │                  │
+│                              │                                 │                  │
+│  ←────────────────────────── Tampilkan preview                 │                  │
+│    │                        │                                 │                  │
+│    ▼                        │                                 │                  │
+│  Menyalin ke Buku Induk     │                                 │                  │
+│  manual                     │                                 │                  │
+│    │                        │                                 │                  │
+│    ▼                        │                                 │                  │
+│  End                        │                                 │                  │
+└─────────────────────────────┴─────────────────────────────────┴──────────────────┘
+```
 
-↓
+---
 
-Preview
+## Activity 7: Teacher Assignment
 
-↓
+```
+┌─────────────────────────────────────┬──────────────────────────────────┬──────────────────────┐
+│         Administrator               │            System                │      Database        │
+├─────────────────────────────────────┼──────────────────────────────────┼──────────────────────┤
+│                                     │                                  │                      │
+│   Start                             │                                  │                      │
+│     │                               │                                  │                      │
+│     ▼                               │                                  │                      │
+│   Pilih kelas                       │                                  │                      │
+│     │                               │                                  │                      │
+│     ▼                               │                                  │                      │
+│   Pilih guru sebagai wali kelas     │                                  │                      │
+│     │                               │                                  │                      │
+│     └───────────────────────────────→  Cek data                        │                      │
+│                                       │                                │                      │
+│                                       ▼                               │                      │
+│                                     Catat perubahan di                │                      │
+│                                     ClassAuditLog:                    │                      │
+│                                     • previousTeacherId               │                      │
+│                                     • newTeacherId                     │                      │
+│                                       │                                │                      │
+│                                       ▼                               │                      │
+│                                     Update Class.homeroomTeacherId ─────→ UPDATE              │
+│                                       │                                │                      │
+│                                     INSERT ClassAuditLog ─────────────→ INSERT               │
+│                                       │                                │                      │
+│   ←───────────────────────────────  Berhasil                          │                      │
+│     │                               │                                  │                      │
+│     ▼                               │                                  │                      │
+│   End                               │                                  │                      │
+└─────────────────────────────────────┴──────────────────────────────────┴──────────────────────┘
+```
 
-Guru Menyalin ke Buku Induk Manual
+---
 
-↓
+## Activity 8: Kenaikan Kelas (Akhir Tahun Ajaran)
 
-End
+```
+┌─────────────────────────────────────┬──────────────────────────────────┬──────────────────────┐
+│          Operator                   │            System                │      Database        │
+├─────────────────────────────────────┼──────────────────────────────────┼──────────────────────┤
+│                                     │                                  │                      │
+│   Start                             │                                  │                      │
+│     │                               │                                  │                      │
+│     ▼                               │                                  │                      │
+│   Akhiri tahun ajaran aktif         │                                  │                      │
+│     │                               │                                  │                      │
+│     └───────────────────────────────→  Set isActive=false ──────────────→ UPDATE AcademicYear  │
+│                                       │                                │                      │
+│                                       ▼                               │                      │
+│                                     Buat tahun ajaran baru ────────────→ INSERT AcademicYear   │
+│                                       │  (isActive=true)               │                      │
+│                                       │                                │                      │
+│                                     Buat class untuk kelas baru        │                      │
+│                                       │  ──────────────────────────────→ INSERT Class          │
+│                                       │                                │                      │
+│                                     Pindahkan siswa ke class baru      │                      │
+│                                       │  ──────────────────────────────→ UPDATE Student       │
+│                                       │    classId                     │                      │
+│   ←───────────────────────────────  Selesai                            │                      │
+│     │                               │                                  │                      │
+│     ▼                               │                                  │                      │
+│   Assign wali kelas baru            │                                  │                      │
+│     │                               │                                  │                      │
+│     ▼                               │                                  │                      │
+│   End                               │                                  │                      │
+└─────────────────────────────────────┴──────────────────────────────────┴──────────────────────┘
+```
+
+---
+
+# Ringkasan Activity Diagram
+
+| No | Activity                  | Aktor Utama       | Interaksi dengan Sistem                                     |
+|----|---------------------------|-------------------|-------------------------------------------------------------|
+| 1  | Login                     | Semua User        | Validasi kredensial, generate JWT                           |
+| 2  | Input Data Akademik       | Guru              | CRUD nilai, kehadiran, prestasi, kesehatan                  |
+| 3  | AI Student Summary        | Guru              | Generate ringkasan via LLM, review, simpan                  |
+| 4  | AI Draft Deskripsi        | Guru              | Generate draft rapor, edit, finalisasi                       |
+| 5  | AI Transition Summary     | Guru              | Generate ringkasan untuk wali kelas baru                    |
+| 6  | Preview Buku Induk        | Guru              | Tampilkan data siap salin manual                            |
+| 7  | Teacher Assignment        | Administrator     | Assign/ubah wali kelas, audit log                           |
+| 8  | Kenaikan Kelas            | Operator          | Akhiri tahun, buat baru, pindahkan siswa                    |

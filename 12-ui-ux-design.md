@@ -560,13 +560,99 @@ Komponen
 
 ---
 
+---
+
+# Color Palette & Design Tokens
+
+| Token              | Value      | Penggunaan                          |
+|--------------------|------------|--------------------------------------|
+| Primary            | #2563EB    | Tombol, link, header aktif           |
+| Primary Hover      | #1D4ED8    | Tombol hover                         |
+| Primary Light      | #DBEAFE    | Background selected, badges          |
+| Success            | #16A34A    | Status lengkap, sukses               |
+| Warning            | #D97706    | Peringatan, draft AI belum review    |
+| Danger             | #DC2626    | Error, data belum lengkap            |
+| Neutral 50         | #F8FAFC    | Background halaman                   |
+| Neutral 100        | #F1F5F9    | Card, sidebar                        |
+| Neutral 200        | #E2E8F0    | Border, divider                      |
+| Neutral 700        | #334155    | Teks body                            |
+| Neutral 900        | #0F172A    | Teks heading                         |
+
+# Typography
+
+| Level     | Font Size | Weight  | Usage                     |
+|-----------|-----------|---------|---------------------------|
+| h1        | 24px      | Bold    | Judul halaman             |
+| h2        | 18px      | Semibold| Judul section             |
+| h3        | 16px      | Semibold| Judul card                |
+| body      | 14px      | Normal  | Teks konten               |
+| small     | 12px      | Normal  | Label, helper text        |
+
+# Component Types (MVP)
+
+| Component         | States                        | Usage                                |
+|-------------------|-------------------------------|--------------------------------------|
+| Button            | default, hover, disabled, loading | Aksi utama                       |
+| Input Text        | default, focus, error, disabled | Form input                        |
+| Select            | default, focus, error          | Dropdown pilihan                   |
+| Table             | default, hover, empty          | Daftar siswa, nilai                |
+| Card              | default                        | Widget dashboard, ringkasan        |
+| Badge             | info, success, warning, danger | Status kelengkapan, role           |
+| Modal             | open, close                    | Konfirmasi, detail                 |
+| Timeline          | vertical, horizontal           | Riwayat semester siswa             |
+| Progress Bar      | 0-100%                         | Progress pengisian semester        |
+| Tabs              | active, inactive               | Input semester (nilai/kehadiran/dll)|
+| Loading Spinner   | active                         | Loading state AI, fetch data       |
+| Empty State       | illustration + text            | Belum ada data                     |
+| Error State       | icon + message + retry         | Error API / AI                     |
+
+# Layout Structure
+
+```
++--------------------------------------------------+
+|  Sidebar          |  Top Navigation              |
+|  ┌─────────┐      |  [Search] [Profile] [Logout] |
+|  │ Logo    │      +-------------------------------+
+|  ├─────────┤                                     |
+|  │ Dashboard│     |  Main Content Area           |
+|  │ Students │     |  (Halaman aktif)             |
+|  │ Classes  │     |                               |
+|  │ AI       │     |                               |
+|  │ Buku     │     |                               |
+|  │ Induk    │     |                               |
+|  ├─────────┤      |                               |
+|  │ Settings │     |                               |
+|  └─────────┘      |                               |
++--------------------------------------------------+
+```
+
+Hak akses menentukan menu yang muncul di sidebar:
+- **Guru**: Dashboard, Students, AI Assistant, Buku Induk
+- **Admin**: Dashboard, Users, Classes, Academic Years
+- **Operator**: Dashboard, Students
+- **Kepala Sekolah**: Dashboard, Students, Buku Induk (read-only)
+
+# Responsive Design
+
+| Breakpoint | Width    | Layout                    |
+|------------|----------|---------------------------|
+| Mobile     | < 768px  | Single column, hamburger menu |
+| Tablet     | 768-1024px| Sidebar collapsed, 2 column |
+| Desktop    | > 1024px | Sidebar expanded, multi column |
+
+Target utama: Desktop (karena guru bekerja menggunakan laptop/PC).
+
+---
+
 # Prinsip UI/UX
 
 - Fokus pada tugas utama guru.
-- Mengurangi jumlah klik.
+- Mengurangi jumlah klik (maksimal 3 klik untuk mencapai fitur utama).
 - Informasi penting ditampilkan dalam satu halaman.
 - AI selalu membutuhkan persetujuan guru sebelum digunakan.
 - Tidak mengubah proses administrasi sekolah, tetapi membantu mempercepat pekerjaan guru.
 - Antarmuka dibuat sederhana agar mudah dipahami oleh guru dengan berbagai tingkat literasi digital.
+- Seluruh aksi memberikan feedback visual (loading, success, error).
+- Data yang belum diisi ditandai jelas agar guru tahu apa yang harus dilengkapi.
 
 # 

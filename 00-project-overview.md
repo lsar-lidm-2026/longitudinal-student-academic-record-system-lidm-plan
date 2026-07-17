@@ -18,7 +18,7 @@ Inovasi Teknologi Digital Pendidikan
 
 Status
 
-System Design
+Development
 
 Platform
 

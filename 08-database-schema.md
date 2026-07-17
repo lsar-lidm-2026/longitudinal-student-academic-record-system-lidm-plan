@@ -5,337 +5,340 @@
 
 Database Schema merupakan representasi struktur database yang akan digunakan dalam implementasi sistem.
 
-Berbeda dengan Physical ERD yang berfokus pada hubungan antar tabel, Database Schema menjelaskan struktur setiap tabel secara lebih sistematis sehingga mudah diimplementasikan menggunakan Relational Database Management System (RDBMS) seperti PostgreSQL atau MySQL.
+Skema ini ditulis dalam format Prisma Schema Language dan diimplementasikan menggunakan Prisma ORM dengan database MySQL/MariaDB.
 
 Karena sistem ini merupakan Minimum Viable Product (MVP) untuk Lomba Inovasi Digital Mahasiswa (LIDM), skema database hanya mencakup kebutuhan inti sistem tanpa menambahkan komponen yang belum diperlukan.
 
 ---
 
-# DB_USER
+# Diagram Relasi
 
-Deskripsi
+```
+User ──┬──→ Class (homeroomTeacherId)           [1:N - Teacher Assignment]
+       └──→ SemesterRecord (createdById)        [1:N - Record Creator]
+       └──→ ClassAuditLog (changedById)          [1:N - Audit Trail]
+
+AcademicYear ──┬──→ Class                        [1:N]
+               └──→ SemesterRecord               [1:N]
+
+Class ──┬──→ Student                             [1:N]
+        └──→ ClassAuditLog                       [1:N - Audit Trail]
+
+Student ──→ SemesterRecord                       [1:N - Longitudinal Record]
+
+SemesterRecord ──┬──→ SubjectScore               [1:N - Nilai per Mapel]
+                 ├──→ Attendance                  [1:1 - Kehadiran]
+                 ├──→ Achievement                 [1:N - Prestasi]
+                 ├──→ HealthRecord                [1:1 - Kesehatan]
+                 └──→ AiSummary                   [1:N - Hasil AI]
+```
+
+---
+
+# Model: User
 
 Menyimpan informasi seluruh pengguna sistem.
 
-Primary Key
+| Field     | Type     | Constraint          |
+|-----------|----------|---------------------|
+| id        | String   | PK, UUID            |
+| username  | String   | UNIQUE, NOT NULL    |
+| password  | String   | NOT NULL (hashed)   |
+| name      | String   | NOT NULL            |
+| role      | Enum     | NOT NULL            |
+| isActive  | Boolean  | DEFAULT true        |
 
-user_id
+Enum Role: `ADMINISTRATOR`, `OPERATOR_SEKOLAH`, `GURU`, `KEPALA_SEKOLAH`
 
-| Column | Type | Constraint |
-|---------|------|------------|
-| user_id | UUID | PRIMARY KEY |
-| full_name | VARCHAR(100) | NOT NULL |
-| email | VARCHAR(100) | UNIQUE, NOT NULL |
-| password_hash | VARCHAR(255) | NOT NULL |
-| role | ENUM | NOT NULL |
-| is_active | BOOLEAN | DEFAULT TRUE |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
+Relasi:
+- `managedClasses` → Class (homeroomTeacherId) — Teacher Assignment
+- `createdRecords` → SemesterRecord (createdById) — Pembuat record
+- `auditLogs` → ClassAuditLog (changedById) — Audit trail
+
+Mapping tabel: `user`
 
 ---
 
-# DB_ACADEMIC_YEAR
-
-Deskripsi
+# Model: AcademicYear
 
 Menyimpan informasi tahun ajaran yang digunakan sistem.
 
-Primary Key
+| Field      | Type    | Constraint          |
+|------------|---------|---------------------|
+| id         | String  | PK, UUID            |
+| year       | String  | UNIQUE, NOT NULL    |
+| isActive   | Boolean | DEFAULT false       |
+| isArchived | Boolean | DEFAULT false       |
 
-academic_year_id
+Catatan:
+- Hanya 1 AcademicYear yang boleh memiliki `isActive = true` dalam satu waktu.
+- Semester tidak disimpan di tabel ini, melainkan di SemesterRecord sebagai field `semester` (Int: 1 = Ganjil, 2 = Genap).
 
-| Column | Type | Constraint |
-|---------|------|------------|
-| academic_year_id | UUID | PRIMARY KEY |
-| academic_year | VARCHAR(20) | NOT NULL |
-| semester | ENUM | NOT NULL |
-| is_active | BOOLEAN | DEFAULT FALSE |
+Relasi:
+- `classes` → Class
+- `semesterRecords` → SemesterRecord
+
+Mapping tabel: `academic_year`
 
 ---
 
-# DB_CLASS
-
-Deskripsi
+# Model: Class
 
 Menyimpan informasi kelas dan wali kelas.
 
-Primary Key
+| Field             | Type   | Constraint              |
+|-------------------|--------|-------------------------|
+| id                | String | PK, UUID                |
+| name              | String | NOT NULL                |
+| academicYearId    | String | FK → AcademicYear       |
+| homeroomTeacherId | String | FK → User (nullable)    |
 
-class_id
+Constraint:
+- `@@unique([name, academicYearId])` — Nama kelas unik dalam satu tahun ajaran
 
-Foreign Key
+Relasi:
+- `academicYear` → AcademicYear
+- `homeroomTeacher` → User
+- `students` → Student
+- `classAuditLogs` → ClassAuditLog
 
-academic_year_id
-
-homeroom_teacher_id
-
-| Column | Type | Constraint |
-|---------|------|------------|
-| class_id | UUID | PRIMARY KEY |
-| academic_year_id | UUID | FOREIGN KEY |
-| homeroom_teacher_id | UUID | FOREIGN KEY |
-| class_name | VARCHAR(20) | NOT NULL |
-| grade | INTEGER | NOT NULL |
+Mapping tabel: `class`
 
 ---
 
-# DB_STUDENT
+# Model: ClassAuditLog
 
-Deskripsi
+Menyimpan log perubahan wali kelas (audit trail).
+
+| Field               | Type     | Constraint          |
+|---------------------|----------|---------------------|
+| id                  | String   | PK, UUID            |
+| classId             | String   | FK → Class          |
+| previousTeacherId   | String?  | (nullable)          |
+| newTeacherId        | String?  | (nullable)          |
+| changedById         | String   | FK → User           |
+| changedAt           | DateTime | DEFAULT now()       |
+
+Relasi:
+- `class` → Class (Cascade on delete)
+- `changedBy` → User
+
+Mapping tabel: `class_audit_log`
+
+---
+
+# Model: Student
 
 Menyimpan identitas dasar siswa.
 
-Primary Key
+| Field    | Type   | Constraint          |
+|----------|--------|---------------------|
+| id       | String | PK, UUID            |
+| nis      | String | UNIQUE, NOT NULL    |
+| nisn     | String | UNIQUE, NOT NULL    |
+| name     | String | NOT NULL            |
+| gender   | String | NOT NULL            |
+| classId  | String | FK → Class          |
 
-student_id
+Catatan:
+- NIS dan NISN bersifat UNIQUE untuk validasi data
+- Alamat, tanggal lahir, nama orang tua tidak disimpan di MVP (bisa ditambahkan jika diperlukan)
 
-Foreign Key
+Relasi:
+- `class` → Class
+- `semesterRecords` → SemesterRecord
 
-class_id
-
-| Column | Type | Constraint |
-|---------|------|------------|
-| student_id | UUID | PRIMARY KEY |
-| class_id | UUID | FOREIGN KEY |
-| nis | VARCHAR(20) | |
-| nisn | VARCHAR(20) | |
-| full_name | VARCHAR(100) | NOT NULL |
-| gender | ENUM | |
-| birth_date | DATE | |
-| address | TEXT | |
-| parent_name | VARCHAR(100) | |
-
----
-
-# DB_SEMESTER_RECORD
-
-Deskripsi
-
-Merupakan tabel utama yang menyimpan riwayat akademik siswa setiap semester.
-
-Primary Key
-
-record_id
-
-Foreign Key
-
-student_id
-
-academic_year_id
-
-created_by
-
-| Column | Type | Constraint |
-|---------|------|------------|
-| record_id | UUID | PRIMARY KEY |
-| student_id | UUID | FOREIGN KEY |
-| academic_year_id | UUID | FOREIGN KEY |
-| average_score | DECIMAL(5,2) | |
-| teacher_note | TEXT | |
-| created_by | UUID | FOREIGN KEY |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
+Mapping tabel: `student`
 
 ---
 
-# DB_SUBJECT_SCORE
+# Model: SemesterRecord
 
-Deskripsi
+Merupakan model utama sistem Longitudinal Student Academic Record.
+Satu baris mewakili perkembangan seorang siswa pada satu semester.
+
+| Field          | Type     | Constraint              |
+|----------------|----------|-------------------------|
+| id             | String   | PK, UUID                |
+| studentId      | String   | FK → Student            |
+| academicYearId | String   | FK → AcademicYear       |
+| semester       | Int      | NOT NULL (1=Ganjil, 2=Genap) |
+| createdById    | String   | FK → User               |
+
+Constraint:
+- `@@unique([studentId, academicYearId, semester])` — Mencegah duplikasi record per siswa per tahun ajaran per semester
+
+Relasi:
+- `student` → Student (Cascade on delete)
+- `academicYear` → AcademicYear
+- `creator` → User ("RecordCreator")
+- `subjectScores` → SubjectScore[]
+- `attendance` → Attendance? (1:1 opsional)
+- `achievements` → Achievement[]
+- `healthRecord` → HealthRecord? (1:1 opsional)
+- `aiSummaries` → AiSummary[]
+
+Mapping tabel: `semester_record`
+
+---
+
+# Model: SubjectScore
 
 Menyimpan nilai mata pelajaran setiap semester.
 
-Primary Key
+| Field            | Type   | Constraint                  |
+|------------------|--------|-----------------------------|
+| id               | String | PK, UUID                    |
+| semesterRecordId | String | FK → SemesterRecord         |
+| subjectName      | String | NOT NULL                    |
+| knowledgeScore   | Float  | NOT NULL (Nilai Pengetahuan)|
+| skillsScore      | Float  | NOT NULL (Nilai Keterampilan)|
+| notes            | String?| Text, optional              |
 
-score_id
+Constraint:
+- `@@unique([semesterRecordId, subjectName])` — Satu mapel hanya satu baris per semester
 
-Foreign Key
+Relasi:
+- `semesterRecord` → SemesterRecord (Cascade on delete)
 
-record_id
-
-| Column | Type | Constraint |
-|---------|------|------------|
-| score_id | UUID | PRIMARY KEY |
-| record_id | UUID | FOREIGN KEY |
-| subject_name | VARCHAR(100) | NOT NULL |
-| score | DECIMAL(5,2) | NOT NULL |
+Mapping tabel: `subject_score`
 
 ---
 
-# DB_ATTENDANCE
-
-Deskripsi
+# Model: Attendance
 
 Menyimpan rekap kehadiran siswa.
 
-Primary Key
+| Field            | Type   | Constraint                  |
+|------------------|--------|-----------------------------|
+| id               | String | PK, UUID                    |
+| semesterRecordId | String | FK, UNIQUE → SemesterRecord |
+| sick             | Int    | DEFAULT 0 (Sakit)           |
+| permission       | Int    | DEFAULT 0 (Izin)            |
+| absent           | Int    | DEFAULT 0 (Tanpa Keterangan)|
 
-attendance_id
+Relasi:
+- `semesterRecord` → SemesterRecord (Cascade on delete)
 
-Foreign Key
+Constraint UNIQUE pada `semesterRecordId` menjamin relasi 1:1. Gunakan operasi upsert.
 
-record_id
-
-| Column | Type | Constraint |
-|---------|------|------------|
-| attendance_id | UUID | PRIMARY KEY |
-| record_id | UUID | FOREIGN KEY, UNIQUE |
-| sick | INTEGER | DEFAULT 0 |
-| permission | INTEGER | DEFAULT 0 |
-| absent | INTEGER | DEFAULT 0 |
+Mapping tabel: `attendance`
 
 ---
 
-# DB_ACHIEVEMENT
-
-Deskripsi
+# Model: Achievement
 
 Menyimpan data prestasi siswa.
 
-Primary Key
+| Field            | Type   | Constraint          |
+|------------------|--------|---------------------|
+| id               | String | PK, UUID            |
+| semesterRecordId | String | FK → SemesterRecord |
+| title            | String | NOT NULL            |
+| type             | String | NOT NULL            |
+| description      | String?| Text, optional      |
 
-achievement_id
+`type`: `"Akademik"` atau `"Non-Akademik"`
 
-Foreign Key
+Relasi:
+- `semesterRecord` → SemesterRecord (Cascade on delete)
 
-record_id
-
-| Column | Type | Constraint |
-|---------|------|------------|
-| achievement_id | UUID | PRIMARY KEY |
-| record_id | UUID | FOREIGN KEY |
-| title | VARCHAR(150) | NOT NULL |
-| category | VARCHAR(50) | |
-| description | TEXT | |
+Mapping tabel: `achievement`
 
 ---
 
-# DB_HEALTH_RECORD
-
-Deskripsi
+# Model: HealthRecord
 
 Menyimpan data kesehatan siswa.
 
-Primary Key
+| Field            | Type   | Constraint                  |
+|------------------|--------|-----------------------------|
+| id               | String | PK, UUID                    |
+| semesterRecordId | String | FK, UNIQUE → SemesterRecord |
+| height           | Float? | Tinggi Badan (cm)           |
+| weight           | Float? | Berat Badan (kg)            |
+| hearingCondition | String?| Kondisi Pendengaran         |
+| visionCondition  | String?| Kondisi Penglihatan         |
+| teethCondition   | String?| Kondisi Gigi                |
 
-health_id
+Constraint UNIQUE pada `semesterRecordId` menjamin relasi 1:1. Gunakan operasi upsert.
 
-Foreign Key
+Relasi:
+- `semesterRecord` → SemesterRecord (Cascade on delete)
 
-record_id
-
-| Column | Type | Constraint |
-|---------|------|------------|
-| health_id | UUID | PRIMARY KEY |
-| record_id | UUID | FOREIGN KEY, UNIQUE |
-| height | DECIMAL(5,2) | |
-| weight | DECIMAL(5,2) | |
-| health_note | TEXT | |
+Mapping tabel: `health_record`
 
 ---
 
-# DB_AI_SUMMARY
-
-Deskripsi
+# Model: AiSummary
 
 Menyimpan hasil keluaran Artificial Intelligence.
 
-Primary Key
+| Field            | Type      | Constraint                    |
+|------------------|-----------|-------------------------------|
+| id               | String    | PK, UUID                      |
+| semesterRecordId | String    | FK → SemesterRecord           |
+| summaryType      | Enum      | NOT NULL                      |
+| content          | String    | NOT NULL (Text)               |
+| isFinal          | Boolean   | DEFAULT false                 |
+| version          | Int       | DEFAULT 1                     |
 
-summary_id
+Enum SummaryType: `STUDENT_SUMMARY`, `DRAFT_DESCRIPTION`, `TRANSITION_SUMMARY`
 
-Foreign Key
+Constraint:
+- `@@unique([semesterRecordId, summaryType, version])` — Multi-versi draft
 
-record_id
+Catatan:
+- `isFinal = false` = draft (belum direview guru)
+- `isFinal = true` = sudah divalidasi guru
+- `version` memungkinkan guru membandingkan hasil regenerate
 
-| Column | Type | Constraint |
-|---------|------|------------|
-| summary_id | UUID | PRIMARY KEY |
-| record_id | UUID | FOREIGN KEY |
-| summary_type | ENUM | NOT NULL |
-| generated_text | TEXT | NOT NULL |
-| generated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
+Relasi:
+- `semesterRecord` → SemesterRecord (Cascade on delete)
 
----
-
-# Relasi Foreign Key
-
-| Parent Table | Parent Key | Child Table | Child Key |
-|---------------|------------|-------------|-----------|
-| DB_USER | user_id | DB_CLASS | homeroom_teacher_id |
-| DB_USER | user_id | DB_SEMESTER_RECORD | created_by |
-| DB_ACADEMIC_YEAR | academic_year_id | DB_CLASS | academic_year_id |
-| DB_ACADEMIC_YEAR | academic_year_id | DB_SEMESTER_RECORD | academic_year_id |
-| DB_CLASS | class_id | DB_STUDENT | class_id |
-| DB_STUDENT | student_id | DB_SEMESTER_RECORD | student_id |
-| DB_SEMESTER_RECORD | record_id | DB_SUBJECT_SCORE | record_id |
-| DB_SEMESTER_RECORD | record_id | DB_ATTENDANCE | record_id |
-| DB_SEMESTER_RECORD | record_id | DB_ACHIEVEMENT | record_id |
-| DB_SEMESTER_RECORD | record_id | DB_HEALTH_RECORD | record_id |
-| DB_SEMESTER_RECORD | record_id | DB_AI_SUMMARY | record_id |
+Mapping tabel: `ai_summary`
 
 ---
 
 # Ringkasan Tabel
 
-| Tabel | Fungsi |
-|--------|--------|
-| DB_USER | Menyimpan akun pengguna sistem |
-| DB_ACADEMIC_YEAR | Menyimpan tahun ajaran dan semester |
-| DB_CLASS | Menyimpan data kelas dan wali kelas |
-| DB_STUDENT | Menyimpan biodata siswa |
-| DB_SEMESTER_RECORD | Menyimpan riwayat akademik setiap semester |
-| DB_SUBJECT_SCORE | Menyimpan nilai setiap mata pelajaran |
-| DB_ATTENDANCE | Menyimpan rekap kehadiran |
-| DB_ACHIEVEMENT | Menyimpan prestasi siswa |
-| DB_HEALTH_RECORD | Menyimpan data kesehatan siswa |
-| DB_AI_SUMMARY | Menyimpan hasil ringkasan dan draft yang dihasilkan AI |
-
----
-
-# Alur Penyimpanan Data
-
-```text
-User
-        │
-        ▼
-Academic Year
-        │
-        ▼
-Class
-        │
-        ▼
-Student
-        │
-        ▼
-Semester Record
-        │
- ┌──────┼──────────────┬──────────────┬──────────────┐
- ▼      ▼              ▼              ▼              ▼
-Subject Attendance Achievement Health AI Summary
-Score
-```
+| Tabel           | Nama Prisma       | Fungsi                                       |
+|-----------------|-------------------|----------------------------------------------|
+| user            | User              | Menyimpan akun pengguna sistem               |
+| academic_year   | AcademicYear      | Menyimpan tahun ajaran                       |
+| class           | Class             | Menyimpan data kelas dan wali kelas          |
+| class_audit_log | ClassAuditLog     | Log perubahan wali kelas                     |
+| student         | Student           | Menyimpan biodata siswa                      |
+| semester_record | SemesterRecord    | Menyimpan riwayat akademik setiap semester   |
+| subject_score   | SubjectScore      | Menyimpan nilai setiap mata pelajaran        |
+| attendance      | Attendance        | Menyimpan rekap kehadiran                    |
+| achievement     | Achievement       | Menyimpan prestasi siswa                     |
+| health_record   | HealthRecord      | Menyimpan data kesehatan siswa               |
+| ai_summary      | AiSummary         | Menyimpan hasil ringkasan AI                 |
 
 ---
 
 # Prinsip Desain Database
 
-Database dirancang berdasarkan beberapa prinsip berikut.
-
-- Satu siswa memiliki satu identitas utama yang digunakan selama masa belajar.
-- Riwayat akademik disimpan per semester sehingga perkembangan siswa dapat ditelusuri secara longitudinal.
-- Artificial Intelligence tidak menyimpan data akademik baru, melainkan menghasilkan ringkasan berdasarkan data yang telah tersedia.
-- Database hanya menyimpan data yang benar-benar diperlukan untuk mendukung fitur MVP.
-- Struktur dibuat sederhana agar mudah dikembangkan, dipahami tim, dan didemonstrasikan dalam kompetisi.
+1. Satu siswa memiliki satu identitas utama (NIS/NISN) yang digunakan selama masa belajar.
+2. Riwayat akademik disimpan per semester sehingga perkembangan siswa dapat ditelusuri secara longitudinal.
+3. Artificial Intelligence tidak menyimpan data akademik baru, melainkan menghasilkan ringkasan berdasarkan data yang telah tersedia (read-only terhadap data sumber).
+4. Database hanya menyimpan data yang benar-benar diperlukan untuk mendukung fitur MVP.
+5. Struktur dibuat sederhana agar mudah dikembangkan, dipahami tim, dan didemonstrasikan dalam kompetisi.
+6. Seluruh constraint unique dan foreign key diimplementasikan di level database untuk menjaga integritas data.
+7. Operasi upsert digunakan untuk tabel dengan relasi 1:1 (Attendance, HealthRecord).
 
 ---
 
 # Ruang Lingkup MVP
 
-Database ini hanya mendukung fitur-fitur utama berikut.
+Database ini hanya mendukung fitur-fitur utama berikut:
 
 - Login pengguna
 - Manajemen kelas
 - Manajemen siswa
 - Riwayat akademik longitudinal
-- Rekap nilai mata pelajaran
+- Nilai mata pelajaran (pengetahuan + keterampilan)
 - Rekap kehadiran
 - Rekap prestasi
 - Rekap kesehatan

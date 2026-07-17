@@ -5,298 +5,303 @@
 
 Physical ERD merupakan tahap implementasi dari Logical ERD ke dalam struktur database yang akan digunakan oleh sistem.
 
-Pada tahap ini setiap entitas direpresentasikan sebagai tabel database lengkap dengan Primary Key (PK), Foreign Key (FK), serta atribut yang akan disimpan.
+Dokumen ini telah diselaraskan dengan implementasi Prisma ORM dan database MySQL/MariaDB yang digunakan dalam pengembangan.
 
 Karena sistem ini merupakan MVP untuk Lomba Inovasi Digital Mahasiswa (LIDM), desain database dibuat sesederhana mungkin tanpa mengurangi kebutuhan utama sistem.
-
-Physical ERD ini hanya ditujukan untuk mendukung demonstrasi aplikasi (Proof of Concept), bukan sebagai sistem produksi yang digunakan sekolah maupun pemerintah.
 
 ---
 
 # DB_USER
 
-Deskripsi
+Deskripsi: Menyimpan akun seluruh pengguna sistem.  
+Mapping: `user`
 
-Menyimpan akun seluruh pengguna sistem.
+| Field     | Type         | Constraint          |
+|-----------|--------------|---------------------|
+| id        | UUID         | PK                  |
+| username  | VARCHAR(100) | UNIQUE, NOT NULL    |
+| password  | VARCHAR(255) | NOT NULL            |
+| name      | VARCHAR(100) | NOT NULL            |
+| role      | ENUM         | NOT NULL            |
+| is_active | BOOLEAN      | DEFAULT TRUE        |
+| created_at| TIMESTAMP    | DEFAULT NOW()       |
+| updated_at| TIMESTAMP    | @updatedAt          |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| user_id | UUID | PK |
-| full_name | VARCHAR(100) | NOT NULL |
-| email | VARCHAR(100) | UNIQUE |
-| password_hash | VARCHAR(255) | NOT NULL |
-| role | ENUM | Administrator, Operator, Guru, Kepala Sekolah |
-| is_active | BOOLEAN | DEFAULT TRUE |
-| created_at | TIMESTAMP | |
+ENUM Role: `ADMINISTRATOR`, `OPERATOR_SEKOLAH`, `GURU`, `KEPALA_SEKOLAH`
+
+Index: 
+- `idx_user_username` on `username`
 
 ---
 
 # DB_ACADEMIC_YEAR
 
-Deskripsi
+Deskripsi: Menyimpan informasi tahun ajaran.  
+Mapping: `academic_year`
 
-Menyimpan informasi tahun ajaran.
+| Field       | Type         | Constraint          |
+|-------------|--------------|---------------------|
+| id          | UUID         | PK                  |
+| year        | VARCHAR(20)  | UNIQUE, NOT NULL    |
+| is_active   | BOOLEAN      | DEFAULT FALSE       |
+| is_archived | BOOLEAN      | DEFAULT FALSE       |
+| created_at  | TIMESTAMP    | DEFAULT NOW()       |
+| updated_at  | TIMESTAMP    | @updatedAt          |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| academic_year_id | UUID | PK |
-| academic_year | VARCHAR(20) | NOT NULL |
-| semester | ENUM | Ganjil, Genap |
-| is_active | BOOLEAN | |
+Index:
+- `idx_academic_year_active` on `is_active` (filtered)
+- `idx_academic_year_year` on `year`
 
 ---
 
 # DB_CLASS
 
-Deskripsi
+Deskripsi: Menyimpan data kelas dan wali kelas.  
+Mapping: `class`
 
-Menyimpan data kelas.
+| Field              | Type         | Constraint              |
+|--------------------|--------------|-------------------------|
+| id                 | UUID         | PK                      |
+| name               | VARCHAR(50)  | NOT NULL                |
+| academic_year_id   | UUID         | FK → DB_ACADEMIC_YEAR   |
+| homeroom_teacher_id| UUID         | FK → DB_USER (nullable) |
+| created_at         | TIMESTAMP    | DEFAULT NOW()           |
+| updated_at         | TIMESTAMP    | @updatedAt              |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| class_id | UUID | PK |
-| academic_year_id | UUID | FK |
-| homeroom_teacher_id | UUID | FK |
-| class_name | VARCHAR(20) | |
-| grade | INTEGER | |
+FK:
+- `academic_year_id` → DB_ACADEMIC_YEAR (Cascade)
+- `homeroom_teacher_id` → DB_USER (Set Null)
 
-FK
+Constraint: `@@unique([name, academic_year_id])`
 
-academic_year_id → DB_ACADEMIC_YEAR
+Index:
+- `idx_class_teacher` on `homeroom_teacher_id`
+- `idx_class_academic_year` on `academic_year_id`
 
-homeroom_teacher_id → DB_USER
+---
+
+# DB_CLASS_AUDIT_LOG
+
+Deskripsi: Log perubahan wali kelas (audit trail).  
+Mapping: `class_audit_log`
+
+| Field                | Type         | Constraint              |
+|----------------------|--------------|-------------------------|
+| id                   | UUID         | PK                      |
+| class_id             | UUID         | FK → DB_CLASS           |
+| previous_teacher_id  | UUID         | nullable                |
+| new_teacher_id       | UUID         | nullable                |
+| changed_by           | UUID         | FK → DB_USER            |
+| changed_at           | TIMESTAMP    | DEFAULT NOW()           |
+
+FK:
+- `class_id` → DB_CLASS (Cascade)
+- `changed_by` → DB_USER
+
+Index:
+- `idx_audit_log_class` on `class_id`
+- `idx_audit_log_changed_at` on `changed_at`
 
 ---
 
 # DB_STUDENT
 
-Deskripsi
+Deskripsi: Menyimpan identitas siswa.  
+Mapping: `student`
 
-Menyimpan identitas siswa.
+| Field     | Type         | Constraint              |
+|-----------|--------------|-------------------------|
+| id        | UUID         | PK                      |
+| class_id  | UUID         | FK → DB_CLASS           |
+| nis       | VARCHAR(20)  | UNIQUE, NOT NULL        |
+| nisn      | VARCHAR(20)  | UNIQUE, NOT NULL        |
+| name      | VARCHAR(100) | NOT NULL                |
+| gender    | VARCHAR(10)  | NOT NULL                |
+| created_at| TIMESTAMP    | DEFAULT NOW()           |
+| updated_at| TIMESTAMP    | @updatedAt              |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| student_id | UUID | PK |
-| class_id | UUID | FK |
-| nis | VARCHAR(20) | |
-| nisn | VARCHAR(20) | |
-| full_name | VARCHAR(100) | |
-| gender | ENUM | L, P |
-| birth_date | DATE | |
-| address | TEXT | |
-| parent_name | VARCHAR(100) | |
+FK:
+- `class_id` → DB_CLASS
 
-FK
-
-class_id → DB_CLASS
+Index:
+- `idx_student_nis` on `nis`
+- `idx_student_nisn` on `nisn`
+- `idx_student_class` on `class_id`
+- `idx_student_name` on `name`
 
 ---
 
 # DB_SEMESTER_RECORD
 
-Deskripsi
+Deskripsi: Merupakan tabel utama sistem. Satu baris mewakili perkembangan seorang siswa pada satu semester.  
+Mapping: `semester_record`
 
-Merupakan tabel utama sistem.
+| Field            | Type         | Constraint              |
+|------------------|--------------|-------------------------|
+| id               | UUID         | PK                      |
+| student_id       | UUID         | FK → DB_STUDENT         |
+| academic_year_id | UUID         | FK → DB_ACADEMIC_YEAR   |
+| semester         | INT          | NOT NULL (1/2)          |
+| created_by       | UUID         | FK → DB_USER            |
+| created_at       | TIMESTAMP    | DEFAULT NOW()           |
+| updated_at       | TIMESTAMP    | @updatedAt              |
 
-Satu baris mewakili perkembangan seorang siswa pada satu semester.
+FK:
+- `student_id` → DB_STUDENT (Cascade)
+- `academic_year_id` → DB_ACADEMIC_YEAR
+- `created_by` → DB_USER
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| record_id | UUID | PK |
-| student_id | UUID | FK |
-| academic_year_id | UUID | FK |
-| average_score | DECIMAL(5,2) | |
-| teacher_note | TEXT | |
-| created_by | UUID | FK |
-| created_at | TIMESTAMP | |
+Constraint: `@@unique([student_id, academic_year_id, semester])`
 
-FK
-
-student_id → DB_STUDENT
-
-academic_year_id → DB_ACADEMIC_YEAR
-
-created_by → DB_USER
+Index:
+- `idx_semester_record_student` on `student_id`
+- `idx_semester_record_academic_year` on `academic_year_id`
+- `idx_semester_record_composite` on `(student_id, academic_year_id, semester)`
 
 ---
 
 # DB_SUBJECT_SCORE
 
-Deskripsi
+Deskripsi: Menyimpan nilai mata pelajaran per semester.  
+Mapping: `subject_score`
 
-Menyimpan nilai mata pelajaran.
+| Field              | Type         | Constraint              |
+|--------------------|--------------|-------------------------|
+| id                 | UUID         | PK                      |
+| semester_record_id | UUID         | FK → DB_SEMESTER_RECORD |
+| subject_name       | VARCHAR(100) | NOT NULL                |
+| knowledge_score    | FLOAT        | NOT NULL                |
+| skills_score       | FLOAT        | NOT NULL                |
+| notes              | TEXT         | nullable                |
+| created_at         | TIMESTAMP    | DEFAULT NOW()           |
+| updated_at         | TIMESTAMP    | @updatedAt              |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| score_id | UUID | PK |
-| record_id | UUID | FK |
-| subject_name | VARCHAR(100) | |
-| score | DECIMAL(5,2) | |
+FK:
+- `semester_record_id` → DB_SEMESTER_RECORD (Cascade)
 
-FK
+Constraint: `@@unique([semester_record_id, subject_name])`
 
-record_id → DB_SEMESTER_RECORD
+Index:
+- `idx_subject_score_record` on `semester_record_id`
+- `idx_subject_score_composite` on `(semester_record_id, subject_name)`
 
 ---
 
 # DB_ATTENDANCE
 
-Deskripsi
+Deskripsi: Menyimpan rekap kehadiran.  
+Mapping: `attendance`
 
-Menyimpan rekap kehadiran.
+| Field              | Type         | Constraint              |
+|--------------------|--------------|-------------------------|
+| id                 | UUID         | PK                      |
+| semester_record_id | UUID         | FK, UNIQUE              |
+| sick               | INT          | DEFAULT 0               |
+| permission         | INT          | DEFAULT 0               |
+| absent             | INT          | DEFAULT 0               |
+| created_at         | TIMESTAMP    | DEFAULT NOW()           |
+| updated_at         | TIMESTAMP    | @updatedAt              |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| attendance_id | UUID | PK |
-| record_id | UUID | FK UNIQUE |
-| sick | INTEGER | DEFAULT 0 |
-| permission | INTEGER | DEFAULT 0 |
-| absent | INTEGER | DEFAULT 0 |
+FK:
+- `semester_record_id` → DB_SEMESTER_RECORD (Cascade)
 
-FK
-
-record_id → DB_SEMESTER_RECORD
+Constraint UNIQUE pada `semester_record_id` menjamin relasi 1:1.
 
 ---
 
 # DB_ACHIEVEMENT
 
-Deskripsi
+Deskripsi: Menyimpan prestasi siswa.  
+Mapping: `achievement`
 
-Menyimpan prestasi siswa.
+| Field              | Type         | Constraint              |
+|--------------------|--------------|-------------------------|
+| id                 | UUID         | PK                      |
+| semester_record_id | UUID         | FK → DB_SEMESTER_RECORD |
+| title              | VARCHAR(150) | NOT NULL                |
+| type               | VARCHAR(50)  | NOT NULL                |
+| description        | TEXT         | nullable                |
+| created_at         | TIMESTAMP    | DEFAULT NOW()           |
+| updated_at         | TIMESTAMP    | @updatedAt              |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| achievement_id | UUID | PK |
-| record_id | UUID | FK |
-| title | VARCHAR(150) | |
-| category | VARCHAR(50) | |
-| description | TEXT | |
+FK:
+- `semester_record_id` → DB_SEMESTER_RECORD (Cascade)
 
-FK
-
-record_id → DB_SEMESTER_RECORD
+Index:
+- `idx_achievement_record` on `semester_record_id`
 
 ---
 
 # DB_HEALTH_RECORD
 
-Deskripsi
+Deskripsi: Menyimpan data kesehatan siswa.  
+Mapping: `health_record`
 
-Menyimpan data kesehatan sederhana.
+| Field              | Type         | Constraint              |
+|--------------------|--------------|-------------------------|
+| id                 | UUID         | PK                      |
+| semester_record_id | UUID         | FK, UNIQUE              |
+| height             | FLOAT        | nullable                |
+| weight             | FLOAT        | nullable                |
+| hearing_condition  | VARCHAR(50)  | nullable                |
+| vision_condition   | VARCHAR(50)  | nullable                |
+| teeth_condition    | VARCHAR(50)  | nullable                |
+| created_at         | TIMESTAMP    | DEFAULT NOW()           |
+| updated_at         | TIMESTAMP    | @updatedAt              |
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| health_id | UUID | PK |
-| record_id | UUID | FK UNIQUE |
-| height | DECIMAL(5,2) | |
-| weight | DECIMAL(5,2) | |
-| health_note | TEXT | |
+FK:
+- `semester_record_id` → DB_SEMESTER_RECORD (Cascade)
 
-FK
-
-record_id → DB_SEMESTER_RECORD
+Constraint UNIQUE pada `semester_record_id` menjamin relasi 1:1.
 
 ---
 
 # DB_AI_SUMMARY
 
-Deskripsi
+Deskripsi: Menyimpan hasil keluaran Artificial Intelligence.  
+Mapping: `ai_summary`
 
-Menyimpan hasil keluaran Artificial Intelligence.
+| Field              | Type         | Constraint              |
+|--------------------|--------------|-------------------------|
+| id                 | UUID         | PK                      |
+| semester_record_id | UUID         | FK → DB_SEMESTER_RECORD |
+| summary_type       | ENUM         | NOT NULL                |
+| content            | TEXT         | NOT NULL                |
+| is_final           | BOOLEAN      | DEFAULT FALSE           |
+| version            | INT          | DEFAULT 1               |
+| created_at         | TIMESTAMP    | DEFAULT NOW()           |
+| updated_at         | TIMESTAMP    | @updatedAt              |
 
-Data ini dapat dihasilkan ulang apabila diperlukan.
+ENUM SummaryType: `STUDENT_SUMMARY`, `DRAFT_DESCRIPTION`, `TRANSITION_SUMMARY`
 
-| Field | Type | Constraint |
-|--------|------|------------|
-| summary_id | UUID | PK |
-| record_id | UUID | FK |
-| summary_type | ENUM | Student Summary, Draft Description, Transition Summary |
-| generated_text | TEXT | |
-| generated_at | TIMESTAMP | |
+FK:
+- `semester_record_id` → DB_SEMESTER_RECORD (Cascade)
 
-FK
+Constraint: `@@unique([semester_record_id, summary_type, version])`
 
-record_id → DB_SEMESTER_RECORD
+Index:
+- `idx_ai_summary_record` on `semester_record_id`
+- `idx_ai_summary_type` on `summary_type`
 
 ---
 
 # Relasi Antar Tabel
 
-| Parent Table | Child Table | Relationship |
-|--------------|-------------|--------------|
-| DB_USER | DB_CLASS | 1 : N |
-| DB_USER | DB_SEMESTER_RECORD | 1 : N |
-| DB_ACADEMIC_YEAR | DB_CLASS | 1 : N |
-| DB_ACADEMIC_YEAR | DB_SEMESTER_RECORD | 1 : N |
-| DB_CLASS | DB_STUDENT | 1 : N |
-| DB_STUDENT | DB_SEMESTER_RECORD | 1 : N |
-| DB_SEMESTER_RECORD | DB_SUBJECT_SCORE | 1 : N |
-| DB_SEMESTER_RECORD | DB_ATTENDANCE | 1 : 1 |
-| DB_SEMESTER_RECORD | DB_ACHIEVEMENT | 1 : N |
-| DB_SEMESTER_RECORD | DB_HEALTH_RECORD | 1 : 1 |
-| DB_SEMESTER_RECORD | DB_AI_SUMMARY | 1 : N |
-
----
-
-# Physical ERD
-
-```text
-                         DB_USER
-                    +----------------+
-                    | PK user_id     |
-                    +----------------+
-                           |
-                    1       |      N
-                           |
-                    +----------------+
-                    |   DB_CLASS     |
-                    +----------------+
-                    | PK class_id    |
-                    | FK teacher_id  |
-                    | FK year_id     |
-                    +----------------+
-                           |
-                    1       |      N
-                           |
-                    +----------------+
-                    |  DB_STUDENT    |
-                    +----------------+
-                    | PK student_id  |
-                    | FK class_id    |
-                    +----------------+
-                           |
-                    1       |      N
-                           |
-              +---------------------------+
-              |  DB_SEMESTER_RECORD       |
-              +---------------------------+
-              | PK record_id              |
-              | FK student_id             |
-              | FK academic_year_id       |
-              | FK created_by             |
-              +---------------------------+
-                 |      |      |      |
-                 |      |      |      |
-                 |      |      |      |
-             1:N | 1:1  |1:N   |1:1
-                 |      |      |
-                 V      V      V
-        DB_SUBJECT_SCORE
-        DB_ATTENDANCE
-        DB_ACHIEVEMENT
-        DB_HEALTH_RECORD
-                 |
-                 |1:N
-                 V
-          DB_AI_SUMMARY
-
-        DB_ACADEMIC_YEAR
-               |
-          1    |    N
-               |
-          DB_CLASS
-```
+| Parent Table       | Child Table         | FK Column             | Relationship |
+|--------------------|---------------------|-----------------------|--------------|
+| DB_USER            | DB_CLASS            | homeroom_teacher_id   | 1 : N        |
+| DB_USER            | DB_SEMESTER_RECORD  | created_by            | 1 : N        |
+| DB_USER            | DB_CLASS_AUDIT_LOG  | changed_by            | 1 : N        |
+| DB_ACADEMIC_YEAR   | DB_CLASS            | academic_year_id      | 1 : N        |
+| DB_ACADEMIC_YEAR   | DB_SEMESTER_RECORD  | academic_year_id      | 1 : N        |
+| DB_CLASS           | DB_STUDENT          | class_id              | 1 : N        |
+| DB_CLASS           | DB_CLASS_AUDIT_LOG  | class_id              | 1 : N        |
+| DB_STUDENT         | DB_SEMESTER_RECORD  | student_id            | 1 : N        |
+| DB_SEMESTER_RECORD | DB_SUBJECT_SCORE    | semester_record_id    | 1 : N        |
+| DB_SEMESTER_RECORD | DB_ATTENDANCE       | semester_record_id    | 1 : 1        |
+| DB_SEMESTER_RECORD | DB_ACHIEVEMENT      | semester_record_id    | 1 : N        |
+| DB_SEMESTER_RECORD | DB_HEALTH_RECORD    | semester_record_id    | 1 : 1        |
+| DB_SEMESTER_RECORD | DB_AI_SUMMARY       | semester_record_id    | 1 : N        |
 
 ---
 
@@ -304,31 +309,54 @@ record_id → DB_SEMESTER_RECORD
 
 Desain database telah memenuhi prinsip normalisasi dasar.
 
-First Normal Form (1NF)
-
+**First Normal Form (1NF):**
 - Seluruh atribut bersifat atomik.
 - Tidak terdapat data berulang dalam satu kolom.
 
-Second Normal Form (2NF)
-
+**Second Normal Form (2NF):**
 - Seluruh atribut bergantung sepenuhnya pada Primary Key.
 
-Third Normal Form (3NF)
-
+**Third Normal Form (3NF):**
 - Tidak terdapat ketergantungan transitif.
 - Informasi dipisahkan ke tabel yang sesuai.
 
 ---
 
+# Ringkasan Index
+
+| Tabel              | Index                            | Tipe      |
+|--------------------|----------------------------------|-----------|
+| user               | `idx_user_username`              | UNIQUE    |
+| academic_year      | `idx_academic_year_active`       | INDEX     |
+| academic_year      | `idx_academic_year_year`         | UNIQUE    |
+| class              | `idx_class_teacher`              | INDEX     |
+| class              | `idx_class_academic_year`        | INDEX     |
+| class              | `uq_class_name_year`             | UNIQUE    |
+| class_audit_log    | `idx_audit_log_class`            | INDEX     |
+| class_audit_log    | `idx_audit_log_changed_at`       | INDEX     |
+| student            | `idx_student_nis`                | UNIQUE    |
+| student            | `idx_student_nisn`               | UNIQUE    |
+| student            | `idx_student_class`              | INDEX     |
+| subject_score      | `idx_subject_score_record`       | INDEX     |
+| subject_score      | `uq_subject_record_name`         | UNIQUE    |
+| semester_record    | `idx_semester_composite`         | UNIQUE    |
+| ai_summary         | `idx_ai_summary_record`          | INDEX     |
+| ai_summary         | `uq_summary_type_version`        | UNIQUE    |
+
+---
+
 # Catatan Implementasi MVP
 
-Untuk menjaga ruang lingkup tetap sederhana dan sesuai dengan kompetisi, beberapa keputusan desain diambil.
+Untuk menjaga ruang lingkup tetap sederhana dan sesuai dengan kompetisi, beberapa keputusan desain diambil:
 
-- Tidak membuat tabel Subject karena daftar mata pelajaran sedikit dan relatif tetap.
-- Tidak membuat tabel Role maupun Permission terpisah.
-- Tidak membuat tabel School karena sistem hanya mendukung satu sekolah sebagai studi kasus.
-- Tidak membuat tabel Notification, Activity Log, Audit Trail, maupun Session.
-- Tidak membuat tabel Prompt AI, Embedding, Vector Database, maupun RAG karena fitur tersebut merupakan rencana pengembangan lanjutan.
-- Hasil AI hanya disimpan sebagai teks pada tabel DB_AI_SUMMARY sehingga implementasi tetap sederhana namun cukup untuk mendemonstrasikan kemampuan Artificial Intelligence pada MVP.
+1. Tidak membuat tabel Subject karena daftar mata pelajaran sedikit dan relatif tetap.
+2. Tidak membuat tabel Role maupun Permission terpisah — menggunakan ENUM.
+3. Tidak membuat tabel School karena sistem hanya mendukung satu sekolah sebagai studi kasus.
+4. Tidak membuat tabel Notification, Audit Log umum, maupun Session.
+5. Nilai dipisah menjadi `knowledge_score` dan `skills_score` sesuai Kurikulum Merdeka.
+6. Data kesehatan diperluas dengan kondisi pendengaran, penglihatan, dan gigi.
+7. ClassAuditLog ditambahkan untuk audit trail perubahan wali kelas.
+8. AiSummary memiliki `is_final` dan `version` untuk mendukung human-in-the-loop dan versioning draft.
+9. Tidak menyimpan embedding, prompt, maupun metadata AI — fitur RAG dan Vector Database merupakan rencana pengembangan lanjutan.
 
-Dengan struktur ini, database sudah mampu mendukung seluruh fitur MVP, yaitu pengelolaan riwayat akademik longitudinal, penyusunan administrasi Buku Induk, serta fitur AI Student Summary, AI Draft Deskripsi, dan AI Student Transition Summary tanpa kompleksitas yang tidak diperlukan.
+Dengan struktur ini, database sudah mampu mendukung seluruh fitur MVP: pengelolaan riwayat akademik longitudinal, penyusunan administrasi Buku Induk, serta fitur AI Student Summary, AI Draft Deskripsi, dan AI Student Transition Summary.

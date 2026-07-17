@@ -1,9 +1,7 @@
 # API Design & Backend Logic
 ## Longitudinal Student Academic Record (LSAR) — LIDM 2026
 
-Disusun berdasarkan dokumen perencanaan resmi di repo:
-`lsar-lidm-2026/longitudinal-student-academic-record-system-lidm-plan`
-(01-problem-analysis, 04-functional-requirement, 08-database-schema, 13-system-architecture, 14-ai-system-design)
+Disusun berdasarkan dokumen perencanaan resmi: problem-analysis, functional-requirement, database-schema, system-architecture, ai-system-design.
 
 ---
 
@@ -13,224 +11,363 @@ Disusun berdasarkan dokumen perencanaan resmi di repo:
 
 **Solusi:** sistem pencatat riwayat akademik siswa per semester (longitudinal), dengan AI sebagai *decision support* (bukan pengambil keputusan) untuk membuat ringkasan/draft narasi.
 
-**Status:** proyek masih tahap *Planning* — belum ada kode, baru dokumen desain. Dokumen ini adalah rancangan backend & API yang bisa langsung dipakai sebagai starting point implementasi.
+**Status implementasi:** tahap Development — backend menggunakan Elysia (Bun), ORM Prisma, database MySQL/MariaDB.
 
 ---
 
-## 2. Tech Stack (sesuai 13-system-architecture.md)
+## 2. Tech Stack
 
-| Layer | Teknologi |
-|---|---|
-| Frontend | React.js + Tailwind CSS |
-| Backend | **FastAPI** (Python) |
-| ORM | SQLAlchemy |
-| Database | PostgreSQL |
-| Auth | JWT |
-| AI | LLM API (OpenAI API / Google Gemini API) — bukan model yang di-hosting sendiri |
+| Layer     | Teknologi                         |
+|-----------|-----------------------------------|
+| Frontend  | Next.js 16 + Tailwind CSS v4      |
+| Backend   | **Elysia** (Bun web framework)    |
+| Bahasa    | TypeScript                        |
+| ORM       | Prisma                            |
+| Database  | MySQL / MariaDB                   |
+| Auth      | JWT (access + refresh token)      |
+| AI        | LLM API (OpenAI / Google Gemini)  |
 
-Arsitektur: **monolith client-server sederhana** — 1 frontend, 1 backend, 1 database, 1 AI service eksternal. MVP sengaja **tidak** memakai microservices, Docker, Redis, message queue, API gateway, atau CI/CD (baru masuk roadmap non-MVP).
+Arsitektur: **monolitik client-server sederhana** — 1 frontend, 1 backend, 1 database, 1 AI service eksternal. MVP tidak memakai microservices, Docker, Redis, message queue, atau CI/CD.
 
 ---
 
-## 3. Rekap Database (08-database-schema.md)
+## 3. Database (Prisma Schema)
 
 ```
-DB_USER ──┬─→ DB_CLASS (homeroom_teacher_id)
-          └─→ DB_SEMESTER_RECORD (created_by)
+User ──┬──→ Class (homeroomTeacherId)
+       └──→ SemesterRecord (createdById)
+       └──→ ClassAuditLog (changedById)
 
-DB_ACADEMIC_YEAR ──┬─→ DB_CLASS
-                    └─→ DB_SEMESTER_RECORD
+AcademicYear ──┬──→ Class
+               └──→ SemesterRecord
 
-DB_CLASS ──→ DB_STUDENT ──→ DB_SEMESTER_RECORD
-                                 ├─→ DB_SUBJECT_SCORE   (1..N)
-                                 ├─→ DB_ATTENDANCE       (1..1)
-                                 ├─→ DB_ACHIEVEMENT      (1..N)
-                                 ├─→ DB_HEALTH_RECORD    (1..1)
-                                 └─→ DB_AI_SUMMARY       (1..N)
+Class ──┬──→ Student
+        └──→ ClassAuditLog
+
+Student ──→ SemesterRecord
+
+SemesterRecord ──┬──→ SubjectScore   (1:N)
+                 ├──→ Attendance     (1:1 — upsert)
+                 ├──→ Achievement    (1:N)
+                 ├──→ HealthRecord   (1:1 — upsert)
+                 └──→ AiSummary      (1:N)
 ```
 
 **Aturan penting untuk backend logic:**
-- `DB_SEMESTER_RECORD` adalah tabel pusat — semua data akademik (nilai, kehadiran, prestasi, kesehatan, ringkasan AI) menempel via `record_id`.
-- Hak akses guru ditentukan oleh `DB_CLASS.homeroom_teacher_id` (Teacher Assignment) — **bukan** oleh kepemilikan data langsung. Middleware/dependency di setiap endpoint siswa & record harus cek: *apakah user login = homeroom_teacher_id dari kelas siswa ini pada tahun ajaran aktif?*
-- `DB_AI_SUMMARY` hanya menyimpan **output**, bukan sumber data baru — AI service **read-only** terhadap data akademik lain, hanya **write** ke tabel ini.
-- `DB_ATTENDANCE` dan `DB_HEALTH_RECORD` bersifat 1:1 terhadap `record_id` (constraint UNIQUE) → gunakan `upsert`, bukan `insert` berulang.
+
+1. `SemesterRecord` adalah tabel pusat — semua data akademik (nilai, kehadiran, prestasi, kesehatan, ringkasan AI) menempel via `semesterRecordId`.
+2. Hak akses guru ditentukan oleh `Class.homeroomTeacherId` — middleware di setiap endpoint siswa & record harus cek: apakah `user.id === class.homeroomTeacherId` untuk tahun ajaran aktif.
+3. `AiSummary` hanya menyimpan **output**, bukan sumber data baru — AI service **read-only** terhadap data akademik lain, hanya **write** ke tabel ini.
+4. `Attendance` dan `HealthRecord` bersifat 1:1 — gunakan Prisma `upsert`, bukan `create` berulang.
+5. `SubjectScore` memiliki constraint `@@unique([semesterRecordId, subjectName])` — gunakan `upsert` juga.
+6. `SemesterRecord` memiliki constraint `@@unique([studentId, academicYearId, semester])` — cek sebelum create.
 
 ---
 
 ## 4. Aktor & Role
 
-| Role | Hak Akses Utama |
-|---|---|
-| Administrator | Kelola pengguna, kelola tahun ajaran, kelola kelas |
-| Operator Sekolah | Kelola data siswa, kelola perpindahan siswa |
-| Guru / Wali Kelas | Kelola data akademik siswa di kelasnya, AI Assistant, Preview Buku Induk |
-| Kepala Sekolah | Monitoring (read-only) seluruh data akademik & Buku Induk |
+| Role             | Hak Akses Utama                                                    |
+|------------------|--------------------------------------------------------------------|
+| ADMINISTRATOR    | Kelola user, tahun ajaran, kelas, teacher assignment               |
+| OPERATOR_SEKOLAH | Kelola data siswa, perpindahan siswa                               |
+| GURU             | Kelola data akademik siswa di kelasnya, AI, Preview Buku Induk     |
+| KEPALA_SEKOLAH   | Monitoring (read-only) seluruh data akademik                       |
 
-> Catatan dari dokumen: pada MVP, akun **Guru** dan **Wali Kelas** sama — akses ditentukan oleh *Teacher Assignment*, bukan role terpisah.
+> Catatan: akun **Guru** dan **Wali Kelas** adalah role yang sama — akses ke siswa ditentukan oleh Teacher Assignment di tabel Class.
 
 ---
 
-## 5. Modul Backend & Business Logic
+## 5. Konvensi API
 
-### 5.1 Authentication & Authorization (FR-01)
-- Login → JWT (access token + refresh token).
-- Middleware `require_role(...)` untuk endpoint admin/operator.
-- Middleware `require_homeroom_access(student_id)` untuk endpoint guru — validasi lewat join `DB_STUDENT → DB_CLASS → homeroom_teacher_id`.
+### Base URL
 
-### 5.2 Academic Year Management (FR-02)
-- Hanya 1 tahun ajaran yang boleh `is_active = true` dalam satu waktu → saat mengaktifkan tahun ajaran baru, backend otomatis men-nonaktifkan yang lama (transaksi atomik).
-- Arsip tahun ajaran = soft flag, bukan hapus data.
+```
+http://localhost:3000/api
+```
 
-### 5.3 Teacher Assignment (FR-03)
-- Mengubah wali kelas cukup update `DB_CLASS.homeroom_teacher_id`. Tidak perlu tabel histori terpisah di MVP, tapi disarankan menyimpan log perubahan minimal (audit trail) karena ini berdampak langsung ke hak akses.
+### Response Format
 
-### 5.4 Student Management (FR-04)
-- CRUD dasar. `class_id` wajib untuk menentukan hak akses guru.
-- Validasi NIS/NISN unik disarankan meski tidak eksplisit di skema (tabel tidak set UNIQUE constraint pada `nis`/`nisn` — perlu diputuskan saat implementasi).
+Semua response menggunakan format JSON seragam:
 
-### 5.5 Student Academic Record per Semester (FR-05)
-- Satu `DB_SEMESTER_RECORD` dibuat per siswa per tahun ajaran (kombinasi `student_id` + `academic_year_id` idealnya unique).
-- Sub-resource (nilai, kehadiran, prestasi, kesehatan) semua menempel ke `record_id` ini — endpoint sebaiknya nested di bawah `/semester-records/{id}/...`.
+**Success (200/201):**
+```json
+{
+  "success": true,
+  "data": { ... },
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 100
+  }
+}
+```
 
-### 5.6 Longitudinal Profile & Timeline (FR-06, FR-07)
-- Endpoint agregasi: join semua semester record milik satu siswa, urut berdasarkan tahun ajaran & semester → dipakai untuk tampilan timeline kelas 1–6.
-- Ini query gabungan (read-heavy), pertimbangkan pagination per semester jika data besar.
+**Error (4xx/5xx):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Deskripsi error yang jelas"
+  }
+}
+```
 
-### 5.7 Administrative Workspace, Validation, Buku Induk Preview (FR-08, FR-09, FR-10)
-- Validation = pure business rule di backend (bukan tabel baru): cek apakah `subject_score`, `attendance`, `health_record` sudah terisi untuk `record_id` tertentu → kembalikan daftar field yang belum lengkap.
-- Buku Induk Preview murni **read** dan **format ulang** data yang sudah ada, tidak membuat entitas baru. Sistem **tidak** generate dokumen Buku Induk digital (ditulis manual oleh guru).
+### Kode Error Standar
 
-### 5.8 AI Features (FR-11, FR-12, FR-13)
-Alur (14-ai-system-design.md):
+| Kode                   | HTTP Status | Deskripsi                           |
+|------------------------|-------------|-------------------------------------|
+| VALIDATION_ERROR       | 400         | Data input tidak valid              |
+| UNAUTHORIZED           | 401         | Token tidak valid / expired         |
+| FORBIDDEN              | 403         | Tidak memiliki hak akses            |
+| NOT_FOUND              | 404         | Resource tidak ditemukan            |
+| CONFLICT               | 409         | Duplikasi data (constraint unique)  |
+| AI_ERROR               | 502         | Gagal memanggil LLM API             |
+| INTERNAL_ERROR         | 500         | Error server internal               |
+
+### Pagination
+
+Endpoint yang mengembalikan daftar resource menggunakan query parameter:
+- `?page=1` (default: 1)
+- `?limit=20` (default: 20, max: 100)
+
+Response menyertakan `meta` dengan `page`, `limit`, `total`.
+
+### Autentikasi
+
+- Kirim JWT via header: `Authorization: Bearer <token>`
+- Access token: masa berlaku pendek (15 menit - 24 jam, sesuai kebutuhan)
+- Refresh token: masa berlaku lebih panjang (7 hari)
+
+---
+
+## 6. Modul Backend & Business Logic
+
+### 6.1 Authentication & Authorization (FR-01)
+
+- Login → validasi username & password (hashed) → return JWT
+- Middleware `requireAuth` untuk verifikasi token
+- Middleware `requireRole(...)` untuk endpoint admin/operator
+- Middleware `requireHomeroomAccess(studentId)` untuk endpoint guru — validasi via join `Student → Class → homeroomTeacherId`
+
+### 6.2 Academic Year Management (FR-02)
+
+- Hanya 1 AcademicYear yang boleh `isActive = true` dalam satu waktu
+- Saat mengaktifkan tahun ajaran baru, backend otomatis menonaktifkan yang lama (transaksi atomik via Prisma)
+- Archive = soft flag (`isArchived = true`), bukan hapus data
+
+### 6.3 Teacher Assignment (FR-03)
+
+- Update `Class.homeroomTeacherId` untuk mengubah wali kelas
+- Setiap perubahan dicatat di `ClassAuditLog` (otomatis via backend)
+- Perubahan ini langsung memengaruhi hak akses guru
+
+### 6.4 Student Management (FR-04)
+
+- CRUD dasar dengan validasi NIS/NISN unik
+- `classId` wajib untuk menentukan hak akses guru
+
+### 6.5 Semester Record & Academic Data (FR-05)
+
+- Satu `SemesterRecord` dibuat per kombinasi `(studentId, academicYearId, semester)` — unique constraint
+- Sub-resource (nilai, kehadiran, prestasi, kesehatan) nested di bawah `semesterRecordId`
+- **SubjectScore** menggunakan `knowledgeScore` dan `skillsScore` terpisah (sesuai Kurikulum Merdeka)
+- **Attendance** dan **HealthRecord** menggunakan upsert
+
+### 6.6 Longitudinal Profile & Timeline (FR-06, FR-07)
+
+- Semua `SemesterRecord` milik satu siswa, diurutkan berdasarkan tahun ajaran & semester
+- Digunakan untuk tampilan timeline kelas 1–6
+
+### 6.7 Administrative Workspace & Buku Induk (FR-08, FR-09, FR-10)
+
+- **Validation**: cek apakah SubjectScore, Attendance, HealthRecord sudah terisi untuk setiap `SemesterRecord` → kembalikan daftar field yang belum lengkap
+- **Buku Induk Preview**: read-only, format ulang data yang sudah ada, **tidak** generate dokumen digital
+
+### 6.8 AI Features (FR-11, FR-12, FR-13)
+
+Alur:
 ```
 Guru pilih siswa
-   → Backend ambil data akademik (nilai, kehadiran, prestasi, kesehatan, catatan)
-   → Backend susun prompt terstruktur
-   → Kirim ke LLM API (OpenAI/Gemini)
-   → Terima narasi
-   → Simpan sebagai draft di DB_AI_SUMMARY (belum final)
-   → Guru review → edit / terima / hapus / regenerate
-   → Guru simpan versi final
+  → Backend ambil data akademik (nilai, kehadiran, prestasi, kesehatan)
+  → Backend susun prompt terstruktur
+  → Kirim ke LLM API (OpenAI/Gemini)
+  → Terima narasi
+  → Simpan sebagai draft di AiSummary (isFinal = false)
+  → Guru review → edit / terima / regenerate
+  → Guru simpan versi final (isFinal = true)
 ```
-- **Human-in-the-loop wajib**: hasil AI tidak pernah langsung dianggap final tanpa aksi guru.
-- AI **tidak** mengubah data akademik sumber — hanya CREATE/UPDATE ke `DB_AI_SUMMARY`.
-- 3 jenis `summary_type` (ENUM di skema): `student_summary`, `draft_description`, `transition_summary`.
 
-### 5.9 Dashboard (FR-14)
-- Agregasi sederhana (count query) — tidak perlu tabel/materialized view khusus di MVP.
+- **Human-in-the-loop wajib**: hasil AI tidak pernah langsung dianggap final
+- **Versioning**: setiap regenerate menambah `version` — guru bisa bandingkan draft
+- AI **tidak mengubah** data akademik sumber — hanya CREATE ke `AiSummary`
+
+### 6.9 Dashboard (FR-14)
+
+- Agregasi sederhana (count query) — tidak perlu tabel khusus di MVP
 
 ---
 
-## 6. Daftar Lengkap API Endpoint
+## 7. Daftar Lengkap API Endpoint
+
+Semua endpoint diawali `/api`.
 
 ### Auth
-| Method | Endpoint | Role | Keterangan |
-|---|---|---|---|
-| POST | `/auth/login` | Semua | Return JWT access + refresh token |
-| POST | `/auth/refresh` | Semua | Refresh access token |
-| POST | `/auth/logout` | Semua | Invalidasi token/sesi |
-| GET | `/auth/me` | Semua | Data user login + role |
 
-### User Management
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/users` | Admin |
-| POST | `/users` | Admin |
-| GET | `/users/{user_id}` | Admin |
-| PUT | `/users/{user_id}` | Admin |
-| PATCH | `/users/{user_id}/status` | Admin |
+| Method | Endpoint                | Role              | Keterangan                    |
+|--------|-------------------------|-------------------|-------------------------------|
+| POST   | `/auth/login`           | Semua             | Return JWT access + refresh   |
+| POST   | `/auth/refresh`         | Semua             | Refresh access token          |
+| POST   | `/auth/logout`          | Semua             | Invalidasi token              |
+| GET    | `/auth/me`              | Semua             | Data user login + role        |
 
-### Academic Year
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/academic-years` | Admin |
-| POST | `/academic-years` | Admin |
-| PUT | `/academic-years/{id}` | Admin |
-| PATCH | `/academic-years/{id}/activate` | Admin |
-| PATCH | `/academic-years/{id}/archive` | Admin |
+### User Management (FR-01)
 
-### Class & Teacher Assignment
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/classes` | Admin, Operator, Kepsek |
-| POST | `/classes` | Admin |
-| PUT | `/classes/{id}` | Admin |
-| PATCH | `/classes/{id}/homeroom-teacher` | Admin |
-| GET | `/classes/{id}/students` | Admin, Operator, Guru (kelasnya), Kepsek |
+| Method | Endpoint                | Role              |
+|--------|-------------------------|-------------------|
+| GET    | `/users`                | ADMINISTRATOR     |
+| POST   | `/users`                | ADMINISTRATOR     |
+| GET    | `/users/:id`            | ADMINISTRATOR     |
+| PUT    | `/users/:id`            | ADMINISTRATOR     |
+| PATCH  | `/users/:id/status`     | ADMINISTRATOR     |
 
-### Student
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/students` | Operator, Kepsek |
-| POST | `/students` | Operator |
-| GET | `/students/{id}` | Operator, Guru (jika kelasnya), Kepsek |
-| PUT | `/students/{id}` | Operator |
-| GET | `/students?class_id={id}` | Operator, Guru, Kepsek |
+### Academic Year (FR-02)
 
-### Semester Record & Sub-resource
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/students/{id}/semester-records` | Guru |
-| GET | `/semester-records/{id}` | Guru (kelasnya), Kepsek |
-| PUT | `/semester-records/{id}` | Guru |
-| POST | `/semester-records/{id}/subject-scores` | Guru |
-| PUT | `/subject-scores/{score_id}` | Guru |
-| DELETE | `/subject-scores/{score_id}` | Guru |
-| PUT | `/semester-records/{id}/attendance` | Guru (upsert) |
-| POST | `/semester-records/{id}/achievements` | Guru |
-| PUT | `/achievements/{achievement_id}` | Guru |
-| DELETE | `/achievements/{achievement_id}` | Guru |
-| PUT | `/semester-records/{id}/health-record` | Guru (upsert) |
+| Method | Endpoint                       | Role              |
+|--------|--------------------------------|-------------------|
+| GET    | `/academic-years`              | ADMINISTRATOR     |
+| POST   | `/academic-years`              | ADMINISTRATOR     |
+| PUT    | `/academic-years/:id`          | ADMINISTRATOR     |
+| PATCH  | `/academic-years/:id/activate` | ADMINISTRATOR     |
+| PATCH  | `/academic-years/:id/archive`  | ADMINISTRATOR     |
 
-### Longitudinal Profile & Timeline
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/students/{id}/profile` | Guru (kelasnya), Kepsek |
-| GET | `/students/{id}/timeline` | Guru (kelasnya), Kepsek |
-| GET | `/students/{id}/semester-records/{semester_id}` | Guru (kelasnya), Kepsek |
+### Class & Teacher Assignment (FR-03)
 
-### Administrative Workspace / Buku Induk
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/students/{id}/administrative-workspace` | Guru |
-| GET | `/students/{id}/validation-status` | Guru |
-| GET | `/students/{id}/buku-induk-preview` | Guru, Kepsek |
+| Method | Endpoint                              | Role                                    |
+|--------|---------------------------------------|-----------------------------------------|
+| GET    | `/classes`                            | ADMINISTRATOR, OPERATOR_SEKOLAH, KEPSEK |
+| POST   | `/classes`                            | ADMINISTRATOR                           |
+| PUT    | `/classes/:id`                        | ADMINISTRATOR                           |
+| PATCH  | `/classes/:id/homeroom-teacher`       | ADMINISTRATOR                           |
+| GET    | `/classes/:id/students`               | ADMINISTRATOR, OPERATOR, GURU, KEPSEK   |
 
-### AI
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/ai/students/{id}/summary` | Guru |
-| POST | `/ai/students/{id}/draft-description` | Guru |
-| POST | `/ai/classes/{id}/transition-summary` | Guru |
-| GET | `/semester-records/{id}/ai-summaries` | Guru, Kepsek |
-| PUT | `/ai-summaries/{id}` | Guru (revisi manual) |
-| DELETE | `/ai-summaries/{id}` | Guru |
+### Student (FR-04)
 
-### Dashboard
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/dashboard/summary` | Semua (data disesuaikan role) |
-| GET | `/dashboard/administrative-status` | Guru, Kepsek |
+| Method | Endpoint                | Role                                    |
+|--------|-------------------------|-----------------------------------------|
+| GET    | `/students`             | OPERATOR_SEKOLAH, KEPSEK                |
+| POST   | `/students`             | OPERATOR_SEKOLAH                        |
+| GET    | `/students/:id`         | OPERATOR, GURU (kelasnya), KEPSEK       |
+| PUT    | `/students/:id`         | OPERATOR_SEKOLAH                        |
+| GET    | `/students?classId=:id` | OPERATOR, GURU, KEPSEK                  |
+
+### Semester Record & Sub-resource (FR-05)
+
+| Method | Endpoint                                           | Role          |
+|--------|----------------------------------------------------|---------------|
+| POST   | `/students/:id/semester-records`                   | GURU          |
+| GET    | `/semester-records/:id`                            | GURU, KEPSEK  |
+| PUT    | `/semester-records/:id`                            | GURU          |
+| DELETE | `/semester-records/:id`                            | GURU          |
+| POST   | `/semester-records/:id/subject-scores`             | GURU          |
+| PUT    | `/semester-records/:id/subject-scores/:scoreId`    | GURU          |
+| DELETE | `/semester-records/:id/subject-scores/:scoreId`    | GURU          |
+| PUT    | `/semester-records/:id/attendance`                 | GURU (upsert) |
+| POST   | `/semester-records/:id/achievements`               | GURU          |
+| PUT    | `/achievements/:id`                                | GURU          |
+| DELETE | `/achievements/:id`                                | GURU          |
+| PUT    | `/semester-records/:id/health-record`              | GURU (upsert) |
+
+### Longitudinal Profile & Timeline (FR-06, FR-07)
+
+| Method | Endpoint                                          | Role          |
+|--------|---------------------------------------------------|---------------|
+| GET    | `/students/:id/profile`                           | GURU, KEPSEK  |
+| GET    | `/students/:id/timeline`                          | GURU, KEPSEK  |
+| GET    | `/students/:id/semester-records`                  | GURU, KEPSEK  |
+
+### Administrative Workspace / Buku Induk (FR-08, FR-09, FR-10)
+
+| Method | Endpoint                                | Role          |
+|--------|-----------------------------------------|---------------|
+| GET    | `/students/:id/administrative-workspace`| GURU          |
+| GET    | `/students/:id/validation-status`       | GURU          |
+| GET    | `/students/:id/buku-induk-preview`      | GURU, KEPSEK  |
+
+### AI Features (FR-11, FR-12, FR-13)
+
+| Method | Endpoint                                    | Role |
+|--------|---------------------------------------------|------|
+| POST   | `/ai/students/:id/summary`                  | GURU |
+| POST   | `/ai/students/:id/draft-description`        | GURU |
+| POST   | `/ai/classes/:id/transition-summary`        | GURU |
+| GET    | `/semester-records/:id/ai-summaries`        | GURU, KEPSEK |
+| PUT    | `/ai-summaries/:id`                         | GURU (revisi) |
+| POST   | `/ai-summaries/:id/regenerate`              | GURU |
+| DELETE | `/ai-summaries/:id`                         | GURU |
+
+### Dashboard (FR-14)
+
+| Method | Endpoint                           | Role              |
+|--------|------------------------------------|-------------------|
+| GET    | `/dashboard/summary`               | Semua (by role)   |
+| GET    | `/dashboard/administrative-status` | GURU, KEPSEK      |
 
 ---
 
-## 7. Yang SENGAJA Tidak Ada di MVP
+## 8. Middleware & Authorization Flow
+
+### Homeroom Access Check
+
+```
+Request → Authenticate (JWT) → Check Role → [If GURU] Check Homeroom:
+  1. Get student by ID → ambil classId
+  2. Get class → cek homeroomTeacherId === userId
+  3. Jika tidak cocok → return 403 FORBIDDEN
+```
+
+### Academic Year Context
+
+Semua operasi GURU secara default menggunakan tahun ajaran yang aktif (`AcademicYear.isActive = true`).
+
+---
+
+## 9. Error Handling Strategy
+
+### Prisma Error Mapping
+
+| Prisma Error             | API Error          |
+|--------------------------|--------------------|
+| `P2002` (Unique violation)| CONFLICT (409)     |
+| `P2025` (Record not found)| NOT_FOUND (404)    |
+| `P2003` (FK violation)   | VALIDATION_ERROR (400) |
+
+### LLM API Error Handling
+
+- Timeout: retry 1x, jika gagal → AI_ERROR (502)
+- Rate limit: queue atau beri jeda, informasikan ke user
+- Invalid response: validasi format output, minta regenerate
+
+---
+
+## 10. Yang Sengaja Tidak Ada di MVP
 
 Sesuai batasan eksplisit di dokumen (jangan dibangun dulu):
+
 - Chatbot AI, RAG, Vector Database
 - Prediksi prestasi siswa, Early Warning System
 - Dashboard orang tua
 - Notifikasi otomatis
 - Integrasi Dapodik / sistem pemerintah
-- Microservices, Docker, Kubernetes, Redis, Message Queue, API Gateway, CI/CD
-
-Ini penting supaya scope development tidak melebar dari yang direncanakan tim untuk kompetisi LIDM.
+- Microservices, Docker, Kubernetes, Redis, Message Queue, CI/CD
 
 ---
 
-## 8. Rekomendasi Tambahan Saat Implementasi
+## 11. Rekomendasi Implementasi
 
-1. **Constraint unik** yang belum eksplisit di skema tapi sebaiknya ditambahkan: `(student_id, academic_year_id)` unique di `DB_SEMESTER_RECORD` agar tidak dobel record per siswa per tahun ajaran.
-2. **Rate limiting** untuk endpoint AI (`/ai/*`) karena memanggil LLM API eksternal berbayar per-request.
-3. **Audit log minimal** untuk perubahan `homeroom_teacher_id`, karena ini memengaruhi hak akses data siswa secara langsung.
-4. **Versioning draft AI**: karena guru bisa "regenerate", pertimbangkan menyimpan histori draft (bukan overwrite) agar guru bisa bandingkan versi — meski skema saat ini hanya punya 1 baris per summary_type per record.
+1. **Error handling global**: buat Elysia plugin/error handler untuk menangkap semua error dan mengembalikan format seragam.
+2. **Rate limiting** untuk endpoint AI (`/ai/*`) karena memanggil LLM API eksternal berbayar.
+3. **Audit log** untuk perubahan `homeroomTeacherId` sudah diakomodasi oleh model `ClassAuditLog`.
+4. **Versioning draft AI**: field `version` dan `isFinal` di `AiSummary` memungkinkan perbandingan draft.
+5. **Transaksi Prisma**: gunakan `prisma.$transaction()` untuk operasi yang mengubah beberapa tabel sekaligus.
+6. **Upsert pattern**: untuk Attendance, HealthRecord, dan SubjectScore, gunakan Prisma `upsert` untuk menghindari duplikasi.

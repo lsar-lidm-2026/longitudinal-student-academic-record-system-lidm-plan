@@ -176,6 +176,18 @@ AI hanya menghasilkan ringkasan berdasarkan data yang sudah tersedia.
 
 ---
 
+## 11. Class Audit Log
+
+Merepresentasikan catatan perubahan wali kelas.
+
+Fungsi
+
+- Mencatat siapa yang mengubah wali kelas
+- Mencatat wali kelas lama dan baru
+- Mendukung akuntabilitas perubahan hak akses
+
+---
+
 # Hubungan Antar Entitas
 
 ## User — Class
@@ -186,17 +198,27 @@ Satu guru dapat menjadi wali dari beberapa kelas pada tahun ajaran yang berbeda.
 
 Satu kelas hanya memiliki satu wali kelas aktif.
 
-Relationship
+Relationship: 1 : N
 
-User
+---
 
-1
+## User — Class Audit Log
 
-──────
+Relasi
 
-N
+Satu administrator dapat membuat banyak log perubahan wali kelas.
 
-Class
+Relationship: 1 : N
+
+---
+
+## Class — Class Audit Log
+
+Relasi
+
+Satu kelas memiliki banyak log perubahan wali kelas.
+
+Relationship: 1 : N
 
 ---
 
@@ -432,6 +454,7 @@ AI Summary
 | Attendance | Menyimpan data kehadiran |
 | Achievement | Menyimpan prestasi siswa |
 | Health Record | Menyimpan data kesehatan siswa |
+| Class Audit Log | Menyimpan log perubahan wali kelas |
 | AI Summary | Menyimpan hasil analisis AI |
 
 ---

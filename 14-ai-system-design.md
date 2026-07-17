@@ -202,26 +202,186 @@ Seluruh fitur tersebut merupakan rencana pengembangan pada tahap berikutnya.
 
 ---
 
+---
+
+# Prompt Engineering
+
+Setiap fitur AI menggunakan prompt terstruktur yang disusun oleh backend. Prompt terdiri dari:
+
+1. **System Prompt** — instruksi umum untuk LLM
+2. **Context** — data akademik siswa yang relevan
+3. **Format Output** — format yang diinginkan
+
+## Prompt AI Student Summary
+
+```
+System Prompt:
+Anda adalah asisten administrasi pendidikan yang membantu guru SD.
+Buat ringkasan perkembangan siswa berdasarkan data akademik berikut.
+Ringkasan harus:
+- Bahasa Indonesia yang baik dan benar
+- Fokus pada kekuatan dan area pengembangan
+- Objektif berdasarkan data
+- Maksimal 3 paragraf
+- Tidak mengandung informasi yang tidak ada dalam data
+
+Context:
+Nama Siswa: {student.name}
+Kelas: {class.name}
+Semester: {semester} (Ganjil/Genap)
+Tahun Ajaran: {academicYear}
+
+Nilai:
+{subjectScores.map(s => `- ${s.subjectName}: Pengetahuan ${s.knowledgeScore}, Keterampilan ${s.skillsScore}`)}
+
+Kehadiran:
+- Sakit: {attendance.sick} hari
+- Izin: {attendance.permission} hari
+- Alpha: {attendance.absent} hari
+
+Prestasi:
+{achievements.map(a => `- ${a.title} (${a.type})`)}
+
+Catatan Guru:
+{teacherNote}
+```
+
+## Prompt AI Draft Deskripsi Rapor
+
+```
+System Prompt:
+Anda adalah asisten guru SD yang membantu menyusun deskripsi rapor.
+Buat draft deskripsi rapor untuk setiap mata pelajaran.
+Deskripsi harus:
+- Bahasa Indonesia yang baik
+- Mencakup aspek pengetahuan dan keterampilan
+- Memberikan gambaran objektif
+- Disertai saran pengembangan yang konstruktif
+- Tidak menggunakan kata-kata negatif
+- Per semester yang sama dengan data
+
+Context:
+Nama Siswa: {student.name}
+Kelas: {class.name}
+Semester: {semester}
+
+Nilai Mata Pelajaran:
+{subjectScores.map(s => `- ${s.subjectName}: Pengetahuan ${s.knowledgeScore}, Keterampilan ${s.skillsScore}. Catatan: ${s.notes || '-'}`)}
+
+Total Kehadiran: Sakit {s}, Izin {p}, Alpha {a}
+
+Format Output:
+**{subjectName}**: [deskripsi narasi 2-3 kalimat]
+(ulangi untuk setiap mata pelajaran)
+```
+
+## Prompt AI Student Transition Summary
+
+```
+System Prompt:
+Anda adalah asisten yang membantu serah terima wali kelas di SD.
+Buat ringkasan transisi untuk wali kelas baru tentang siswa ini.
+Ringkasan harus:
+- Bahasa Indonesia yang baik
+- Fokus pada informasi yang berguna untuk guru baru
+- Mencakup kekuatan akademik, area pengembangan, dan catatan penting
+- Objektif berdasarkan data
+- Maksimal 4 paragraf
+
+Context:
+Nama Siswa: {student.name}
+Riwayat Kelas: {gradeHistory} (kelas 1 sampai kelas saat ini)
+
+Riwayat Nilai per Semester:
+{semesterRecords.map(r => `Semester ${r.semester} ${r.academicYear}: Rata-rata ${r.average}`)}
+
+Prestasi Selama Belajar:
+{allAchievements.map(a => `- ${a.title} (${a.type}, Semester ${a.semester})`)}
+
+Kehadiran (Rata-rata):
+- Sakit: {avgSick}/semester
+- Izin: {avgPermission}/semester
+
+Catatan Penting:
+{allNotes}
+
+Format Output:
+1. Profil Singkat: [1 paragraf]
+2. Kekuatan Akademik: [1-2 kalimat]
+3. Area Pengembangan: [1-2 kalimat]
+4. Catatan Penting untuk Wali Kelas Baru: [1-2 kalimat]
+```
+
+---
+
+# Error Handling LLM
+
+## Skenario Error
+
+| Skenario                   | Penyebab                        | Handling                                 |
+|----------------------------|---------------------------------|------------------------------------------|
+| Timeout                    | LLM API lambat                  | Retry 1x, timeout 30s                    |
+| Rate Limit                 | Terlalu banyak request          | Exponential backoff, informasikan user   |
+| Invalid Response           | Output tidak sesuai format      | Validasi format, minta regenerate        |
+| Empty Response             | LLM return kosong               | Retry dengan prompt lebih spesifik       |
+| API Key Invalid            | Konfigurasi salah               | Log error, tampilkan pesan ke admin      |
+| Model Unavailable          | Model sedang down               | Fallback ke model alternatif             |
+
+## Retry Strategy
+
+```
+Request ke LLM
+  → Success → return response
+  → Timeout → tunggu 2 detik → retry (max 1x)
+    → Success → return response
+    → Timeout → return AI_ERROR (502)
+```
+
+## Content Validation
+
+Setelah menerima response dari LLM, backend harus memvalidasi:
+
+1. Response tidak kosong
+2. Response dalam format yang diharapkan (teks narasi)
+3. Tidak mengandung konten yang tidak pantas (optional)
+
+Jika validasi gagal, backend mengembalikan error yang memungkinkan user melakukan regenerate.
+
+---
+
+# Rate Limiting & Cost Optimization
+
+## Strategi
+
+| Strategi             | Implementasi                                |
+|----------------------|---------------------------------------------|
+| Cache hasil          | Simpan di AiSummary, jika sudah ada dan     |
+|                      | data tidak berubah, gunakan hasil lama      |
+| Debounce             | Jangan izinkan regenerate dalam 5 detik     |
+| Model hemat          | Gunakan model kecil (gpt-4o-mini / Gemini  |
+|                      | Flash) untuk MVP                            |
+| Batch (Transition)   | Proses seluruh siswa dalam satu kelas       |
+|                      | dengan satu prompt (jika memungkinkan)      |
+
+---
+
+# AI Safety & Privacy
+
+1. **Data Privacy**: Data siswa hanya dikirim ke LLM untuk satu kali generate, tidak disimpan oleh pihak ketiga.
+2. **No Training**: LLM API yang digunakan tidak menggunakan data yang dikirim untuk training model (OpenAI API, Gemini API).
+3. **Human Oversight**: Setiap hasil AI harus direview guru sebelum digunakan (isFinal = true).
+4. **No Hallucination**: Prompt dirancang untuk meminimalkan halusinasi dengan membatasi output hanya berdasarkan data yang diberikan.
+5. **Logging**: Semua request dan response AI dicatat (tanpa data sensitif) untuk audit.
+
+---
+
 # Roadmap Pengembangan AI
 
-Tahap 1 (MVP)
-
-- AI Student Summary
-- AI Draft Deskripsi
-- AI Student Transition Summary
-
-Tahap 2
-
-- Chatbot AI
-- Retrieval-Augmented Generation (RAG)
-- Vector Database
-
-Tahap 3
-
-- Prediksi Prestasi Siswa
-- Early Warning System
-- Dashboard Orang Tua
-- Notifikasi Otomatis
+| Fase  | Isi                                      | Target            |
+|-------|------------------------------------------|-------------------|
+| MVP   | AI Student Summary, Draft Deskripsi, Transition Summary | LIDM 2026 |
+| Fase 2| Chatbot AI, RAG, Vector Database          | Pasca LIDM        |
+| Fase 3| Prediksi Prestasi, Early Warning System, Dashboard Orang Tua, Notifikasi Otomatis | Pasca LIDM |
 
 ---
 

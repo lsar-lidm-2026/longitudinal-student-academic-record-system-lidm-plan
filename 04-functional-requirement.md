@@ -313,7 +313,90 @@ Dashboard tidak menampilkan analitik kompleks.
 
 ---
 
+---
+
+# Non-Functional Requirements
+
+## NFR-01 Keamanan
+
+| Kode    | Requirement                                       | Prioritas |
+|---------|---------------------------------------------------|-----------|
+| NFR-01  | Password harus di-hash menggunakan bcrypt/argon2  | High      |
+| NFR-02  | Semua request ke backend harus menggunakan JWT    | High      |
+| NFR-03  | Token JWT harus memiliki expiry time              | High      |
+| NFR-04  | Endpoint AI harus memiliki rate limiting          | Medium    |
+| NFR-05  | Input dari user harus divalidasi sebelum diproses | High      |
+
+## NFR-02 Performa
+
+| Kode    | Requirement                                           | Prioritas |
+|---------|-------------------------------------------------------|-----------|
+| NFR-06  | Response API untuk operasi CRUD < 500ms               | Medium    |
+| NFR-07  | Response AI summary < 10 detik (termasuk LLM call)    | Medium    |
+| NFR-08  | Halaman dashboard load < 3 detik                      | Medium    |
+| NFR-09  | Database query untuk profile siswa < 1 detik          | Medium    |
+
+## NFR-03 Usability
+
+| Kode    | Requirement                                           | Prioritas |
+|---------|-------------------------------------------------------|-----------|
+| NFR-10  | Antarmuka harus responsif (desktop & tablet)          | High      |
+| NFR-11  | Seluruh aksi harus memberikan feedback visual         | High      |
+| NFR-12  | Proses loading AI harus menampilkan indikator progress| Medium    |
+| NFR-13  | Form input harus memiliki validasi client-side        | Medium    |
+
+## NFR-04 Reliability
+
+| Kode    | Requirement                                           | Prioritas |
+|---------|-------------------------------------------------------|-----------|
+| NFR-14  | Sistem harus tetap berjalan jika LLM API gagal        | High      |
+| NFR-15  | Error LLM API harus ditampilkan dengan pesan jelas    | High      |
+| NFR-16  | Data yang sudah disimpan tidak boleh hilang           | High      |
+| NFR-17  | Database harus memiliki backup                        | Medium    |
+
+## NFR-05 Maintainability
+
+| Kode    | Requirement                                           | Prioritas |
+|---------|-------------------------------------------------------|-----------|
+| NFR-18  | Kode harus mengikuti struktur modular (controller/service) | High    |
+| NFR-19  | Environment variable harus dipisahkan dari kode       | High      |
+| NFR-20  | API response harus memiliki format seragam            | High      |
+| NFR-21  | Setiap modul harus memiliki validasi input            | Medium    |
+
+## NFR-06 Compatibility
+
+| Kode    | Requirement                                           | Prioritas |
+|---------|-------------------------------------------------------|-----------|
+| NFR-22  | Frontend harus kompatibel dengan Chrome, Firefox, Edge| High      |
+| NFR-23  | Sistem harus berjalan di Bun runtime                  | High      |
+| NFR-24  | Database harus kompatibel dengan MySQL/MariaDB        | High      |
+
+---
+
 # Ruang Lingkup MVP
+
+## Fitur Utama (Termasuk MVP)
+
+| Kode    | Fitur                               | Prioritas |
+|---------|-------------------------------------|-----------|
+| FR-01   | Authentication                      | P0        |
+| FR-02   | Academic Year Management             | P1        |
+| FR-03   | Teacher Assignment                   | P1        |
+| FR-04   | Student Management                   | P1        |
+| FR-05   | Student Academic Record              | P2        |
+| FR-06   | Longitudinal Student Profile         | P2        |
+| FR-07   | Student Timeline                     | P2        |
+| FR-08   | Administrative Preparation Workspace | P4        |
+| FR-09   | Administrative Validation            | P4        |
+| FR-10   | Preview Buku Induk                   | P4        |
+| FR-11   | AI Student Summary                   | P3        |
+| FR-12   | AI Draft Deskripsi                   | P3        |
+| FR-13   | AI Student Transition Summary        | P3        |
+| FR-14   | Dashboard                            | P4        |
+
+Prioritas: P0 (Critical) → P4 (Nice to have)
+
+## Fitur Tidak Termasuk MVP
 
 Fitur berikut tidak termasuk dalam MVP dan menjadi rencana pengembangan selanjutnya.
 
