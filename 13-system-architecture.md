@@ -33,13 +33,13 @@ Sistem tidak dirancang untuk menggantikan Dapodik maupun sistem administrasi pem
                                      │
                                      ▼
                           Backend (Elysia - Bun)
-          ┌──────────────────┼──────────────────┐
-          │                  │                  │
-          ▼                  ▼                  ▼
-   MySQL/MariaDB        AI Service         Authentication
-   (Prisma ORM)        (LLM API)           & Authorization
-          │                  │                  (JWT)
-          └──────────┬───────┘
+          ┌──────────────────┬──────────────────┬─────────────────┐
+          │                  │                  │                 │
+          ▼                  ▼                  ▼                 ▼
+   MySQL/MariaDB        AI Service         ML Engine        Authentication
+   (Prisma ORM)        (LLM API)       (ONNX Runtime)      & Authorization
+          │                  │                  │               (JWT)
+          └──────────────────┴──────────────────┘
                      ▼
                Response ke Client
 ```
@@ -134,7 +134,7 @@ Database menjadi single source of truth untuk seluruh riwayat akademik siswa.
 
 ---
 
-## 5. AI Service
+## 5. AI Service (LLM - Generatif)
 
 Artificial Intelligence digunakan sebagai asisten guru.
 
@@ -151,6 +151,35 @@ Fungsi
 
 AI hanya membaca data dari backend dan menghasilkan narasi.
 AI tidak mengubah data akademik siswa (read-only terhadap data sumber).
+
+---
+
+## 6. ML Engine (Analitik - Prediktif)
+
+Machine Learning sebagai lapisan analitik prediktif di atas data longitudinal.
+
+Teknologi
+
+- Python (prototype/Colab) → ONNX Runtime (integrasi)
+- Scikit-learn untuk training model
+- onnxruntime-node untuk inference di backend Bun/Elysia
+
+Fungsi
+
+- Prediksi tren nilai siswa (regresi)
+- Early Warning System — deteksi siswa at-risk (klasifikasi)
+- Clustering pola belajar siswa (unsupervised)
+- Rekomendasi intervensi berbasis rule + ML
+
+Arsitektur ML:
+
+```
+Data Akademik → Feature Engineering → Model ONNX → Prediksi → Dashboard
+                      ↓                                      ↓
+              Feature Store (SQL)                     PredictedOutcome (DB)
+```
+
+Detail lengkap: [18-machine-learning-design.md](./18-machine-learning-design.md)
 
 ---
 
@@ -226,44 +255,50 @@ Guru → Frontend → Backend → Database → Menyusun data → Preview → Gur
 
 # Teknologi yang Digunakan (MVP)
 
-| Komponen      | Teknologi                            |
-|---------------|--------------------------------------|
-| Frontend      | Next.js 16                           |
-| Bahasa        | TypeScript                           |
-| Styling       | Tailwind CSS v4                      |
-| Backend       | Elysia (Bun web framework)           |
-| ORM           | Prisma                               |
-| Database      | MySQL / MariaDB                      |
-| Autentikasi   | JWT (manual, tanpa library tambahan) |
-| AI            | OpenAI API / Google Gemini API       |
-| Runtime       | Bun                                  |
+| Komponen         | Teknologi                                   |
+|------------------|---------------------------------------------|
+| Frontend         | Next.js 16                                  |
+| Bahasa           | TypeScript                                  |
+| Styling          | Tailwind CSS v4                             |
+| Backend          | Elysia (Bun web framework)                  |
+| ORM              | Prisma                                      |
+| Database         | MySQL / MariaDB                             |
+| Autentikasi      | JWT (manual, tanpa library tambahan)        |
+| AI (LLM)         | OpenAI API / Google Gemini API              |
+| ML Engine        | ONNX Runtime (onnxruntime-node)             |
+| ML Training      | Python + Scikit-learn (Colab/Notebook)      |
+| Runtime          | Bun                                         |
 
 ---
 
 # Komunikasi Antar Komponen
 
-| Dari            | Ke              | Fungsi                       |
-|-----------------|-----------------|------------------------------|
-| User            | Frontend        | Interaksi antarmuka          |
-| Frontend        | Backend         | REST API (HTTP JSON)         |
-| Backend         | MySQL/MariaDB   | CRUD Data via Prisma ORM     |
-| Backend         | AI Service      | Generate narasi via LLM API  |
-| AI Service      | Backend         | Hasil narasi                 |
-| Backend         | Frontend        | Response JSON                |
-| Frontend        | User            | Menampilkan hasil            |
+| Dari            | Ke              | Fungsi                               |
+|-----------------|-----------------|--------------------------------------|
+| User            | Frontend        | Interaksi antarmuka                  |
+| Frontend        | Backend         | REST API (HTTP JSON)                 |
+| Backend         | MySQL/MariaDB   | CRUD Data via Prisma ORM             |
+| Backend         | AI Service      | Generate narasi via LLM API          |
+| AI Service      | Backend         | Hasil narasi                         |
+| Backend         | ML Engine       | Load model → inference               |
+| ML Engine       | Backend         | Hasil prediksi (label, score)        |
+| Backend         | Frontend        | Response JSON                        |
+| Frontend        | User            | Menampilkan hasil                    |
 
 ---
 
 # Environment Variables
 
-| Variable               | Deskripsi                         |
-|------------------------|-----------------------------------|
-| DATABASE_URL           | Koneksi MySQL/MariaDB             |
-| JWT_SECRET             | Secret key untuk JWT              |
-| JWT_EXPIRES_IN         | Masa berlaku token (contoh: 7d)   |
-| LLM_API_KEY            | API Key LLM (OpenAI/Gemini)       |
-| LLM_MODEL              | Model LLM yang digunakan          |
-| NEXT_PUBLIC_API_URL    | URL backend untuk frontend        |
+| Variable               | Deskripsi                               |
+|------------------------|-----------------------------------------|
+| DATABASE_URL           | Koneksi MySQL/MariaDB                   |
+| JWT_SECRET             | Secret key untuk JWT                    |
+| JWT_EXPIRES_IN         | Masa berlaku token (contoh: 7d)         |
+| LLM_API_KEY            | API Key LLM (OpenAI/Gemini)             |
+| LLM_MODEL              | Model LLM yang digunakan                |
+| NEXT_PUBLIC_API_URL    | URL backend untuk frontend              |
+| ML_MODEL_PATH          | Path ke model ONNX                      |
+| ML_ENABLED             | Aktifkan/nonaktifkan ML engine          |
 
 ---
 

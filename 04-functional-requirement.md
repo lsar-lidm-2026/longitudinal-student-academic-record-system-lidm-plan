@@ -292,24 +292,105 @@ Dashboard tidak menampilkan analitik kompleks.
 
 ---
 
+---
+
+# FR-15 ML Trend Prediction
+
+Deskripsi
+
+Sistem dapat memprediksi tren nilai siswa berdasarkan data historis.
+
+Fungsi
+
+- Menampilkan grafik tren nilai per mata pelajaran
+- Menampilkan proyeksi nilai semester depan
+- Notifikasi jika diprediksi terjadi penurunan signifikan
+- Menyediakan confidence interval untuk setiap prediksi
+
+Target
+
+MVP: Rule-based trend (membandingkan delta antar semester)
+Post-MVP: Model regresi ML
+
+---
+
+# FR-16 ML Early Warning System
+
+Deskripsi
+
+Sistem dapat mengidentifikasi siswa yang berisiko mengalami kesulitan akademik.
+
+Fungsi
+
+- Mengklasifikasikan siswa ke level risiko: Aman, Waspada, Kritis
+- Menampilkan faktor kontributor utama risiko
+- Memberikan rekomendasi tindakan awal
+- Menampilkan heatmap risiko per kelas
+
+Target
+
+MVP: Rule-based berdasarkan threshold nilai + kehadiran
+Post-MVP: Model klasifikasi ML
+
+---
+
+# FR-17 ML Clustering Pola Belajar
+
+Deskripsi
+
+Sistem dapat mengelompokkan siswa berdasarkan pola akademik.
+
+Fungsi
+
+- Membagi siswa ke dalam cluster berdasarkan pola belajar
+- Menampilkan profil setiap cluster
+- Menampilkan anggota setiap kelompok
+
+Target
+
+Post-MVP: K-Means clustering
+
+---
+
+# FR-18 ML Model Management
+
+Deskripsi
+
+Administrator dapat mengelola model ML yang digunakan sistem.
+
+Fungsi
+
+- Melihat daftar model dan metriknya
+- Melatih (training) model baru
+- Mengaktifkan/nonaktifkan model
+- Melihat riwayat prediksi
+
+---
+
 # Ringkasan Functional Requirements
 
-| Kode | Functional Requirement |
-|------|-------------------------|
-| FR-01 | Authentication |
-| FR-02 | Academic Year Management |
-| FR-03 | Teacher Assignment |
-| FR-04 | Student Management |
-| FR-05 | Student Academic Record |
-| FR-06 | Longitudinal Student Profile |
-| FR-07 | Student Timeline |
-| FR-08 | Administrative Preparation Workspace |
-| FR-09 | Administrative Validation |
-| FR-10 | Preview Buku Induk |
-| FR-11 | AI Student Summary |
-| FR-12 | AI Draft Deskripsi |
-| FR-13 | AI Student Transition Summary |
-| FR-14 | Dashboard |
+| Kode  | Functional Requirement           | Prioritas |
+|-------|----------------------------------|-----------|
+| FR-01 | Authentication                   | P0        |
+| FR-02 | Academic Year Management         | P1        |
+| FR-03 | Teacher Assignment               | P1        |
+| FR-04 | Student Management               | P1        |
+| FR-05 | Student Academic Record          | P2        |
+| FR-06 | Longitudinal Student Profile     | P2        |
+| FR-07 | Student Timeline                 | P2        |
+| FR-08 | Administrative Preparation Workspace | P4     |
+| FR-09 | Administrative Validation        | P4        |
+| FR-10 | Preview Buku Induk               | P4        |
+| FR-11 | AI Student Summary               | P3        |
+| FR-12 | AI Draft Deskripsi               | P3        |
+| FR-13 | AI Student Transition Summary    | P3        |
+| FR-14 | Dashboard                        | P4        |
+| FR-15 | ML Trend Prediction              | P5        |
+| FR-16 | ML Early Warning System          | P5        |
+| FR-17 | ML Clustering Pola Belajar       | P5        |
+| FR-18 | ML Model Management              | P5        |
+
+Prioritas: P0 (Critical) → P5 (Post-MVP)
 
 ---
 

@@ -27,25 +27,33 @@ Artificial Intelligence dikembangkan untuk membantu guru dalam:
 # Arsitektur AI
 
 ```text
-                 Guru
-                  │
-                  ▼
-      Longitudinal Academic Record
-                  │
-                  ▼
-        AI Processing Engine
-                  │
-        ┌─────────┼──────────┐
-        │         │          │
-        ▼         ▼          ▼
- Student     Draft Report   Transition
- Summary     Description     Summary
-                  │
-                  ▼
-          Review oleh Guru
-                  │
-                  ▼
-        Digunakan dalam Sistem
+                 Guru / Kepala Sekolah
+                   │
+                   ▼
+       Longitudinal Academic Record
+                   │
+         ┌─────────┴──────────────┐
+         │                        │
+         ▼                        ▼
+  AI Processing              ML Processing
+  (LLM - Generatif)          (Analitik - Prediktif)
+         │                        │
+         │                        ├── Prediksi Tren Nilai
+         │                        ├── Early Warning System
+         │                        ├── Clustering Pola Belajar
+         │                        └── Rekomendasi Intervensi
+         │                        │
+         ▼                        ▼
+  Student Summary           Dashboard Analitik
+  Draft Deskripsi           Grafik Tren
+  Transition Summary        Heatmap Risiko
+         │                        │
+         └──────────┬─────────────┘
+                    ▼
+            Review oleh Guru
+                    │
+                    ▼
+          Digunakan dalam Sistem
 ```
 
 ---
@@ -375,13 +383,55 @@ Jika validasi gagal, backend mengembalikan error yang memungkinkan user melakuka
 
 ---
 
-# Roadmap Pengembangan AI
+---
 
-| Fase  | Isi                                      | Target            |
-|-------|------------------------------------------|-------------------|
-| MVP   | AI Student Summary, Draft Deskripsi, Transition Summary | LIDM 2026 |
-| Fase 2| Chatbot AI, RAG, Vector Database          | Pasca LIDM        |
-| Fase 3| Prediksi Prestasi, Early Warning System, Dashboard Orang Tua, Notifikasi Otomatis | Pasca LIDM |
+# Integrasi dengan Machine Learning
+
+Sistem LSAR mengintegrasikan dua jenis kecerdasan buatan:
+
+| Aspek              | AI (LLM)                                    | ML (Machine Learning)                       |
+|--------------------|----------------------------------------------|---------------------------------------------|
+| **Sifat**          | Generatif — menghasilkan teks baru           | Analitik — menemukan pola dari data         |
+| **Input**          | Data akademik + prompt                       | Feature vector numerik                      |
+| **Output**         | Narasi (ringkasan, draft deskripsi)          | Prediksi, label risiko, cluster             |
+| **Model**          | LLM eksternal (OpenAI/Gemini)                | Model statistik/ML (ONNX lokal)             |
+| **Data Privacy**   | Data dikirim ke API eksternal                | Processing lokal, data tidak keluar         |
+| **Frekuensi**      | On-demand (guru klik generate)               | Batch per semester + real-time              |
+| **Human Review**   | Wajib (isFinal)                              | Wajib (guru konfirmasi prediksi)            |
+| **MVP**            | 3 fitur AI                                   | Rule-based alert system                     |
+
+Hubungan antara AI dan ML:
+
+```
+Data Akademik → Feature Engineering → ML Models
+                                       │
+                          ┌────────────┴────────────┐
+                          │                         │
+                          ▼                         ▼
+                    ML Output                  AI Prompt Context
+                    (prediksi,                  (data + insight ML
+                     label risiko)               sebagai konteks)
+                          │                         │
+                          └────────┬────────────────┘
+                                   ▼
+                            Dashboard Guru
+```
+
+Dengan integrasi ini, LLM dapat menggunakan insight dari ML sebagai konteks tambahan. Contoh: saat membuat Student Summary, LLM tidak hanya menerima data mentah tetapi juga insight "siswa ini mengalami penurunan 15% di Matematika" (dari ML).
+
+---
+
+# Roadmap Pengembangan AI & ML
+
+| Fase  | AI (LLM)                                        | ML (Machine Learning)                   | Target            |
+|-------|--------------------------------------------------|------------------------------------------|-------------------|
+| MVP   | Student Summary, Draft Deskripsi, Transition Summary | Rule-based alert (threshold)        | LIDM 2026         |
+| Fase 2| Chatbot AI, RAG, Vector Database                 | Prediksi Tren Nilai (regresi)            | Pasca LIDM (1-2 bln) |
+| Fase 3| —                                                | Early Warning System (klasifikasi)       | Pasca LIDM (3 bln)  |
+| Fase 3| —                                                | Clustering Pola Belajar                  | Pasca LIDM (4 bln)  |
+| Fase 4| AI + ML terintegrasi penuh di dashboard          | Pipeline training otomatis               | Pasca LIDM (6 bln)  |
+
+Dokumen terpisah: [18-machine-learning-design.md](./18-machine-learning-design.md) untuk detail arsitektur, pipeline, dan implementasi ML.
 
 ---
 

@@ -330,9 +330,81 @@ Mapping tabel: `ai_summary`
 
 ---
 
+---
+
+# Model: PredictedOutcome
+
+Deskripsi: Menyimpan hasil prediksi Machine Learning untuk setiap siswa.
+
+| Field       | Type         | Constraint              |
+|-------------|--------------|-------------------------|
+| id          | UUID         | PK                      |
+| student_id  | UUID         | FK → Student            |
+| academic_year_id | UUID   | FK → AcademicYear       |
+| model_type  | Enum         | NOT NULL                |
+| score       | Float        | Nilai prediksi numerik  |
+| label       | String(20)   | Label klasifikasi       |
+| confidence  | Float        | Confidence score (0-1)  |
+| features    | JSON         | Snapshot feature vector |
+| is_active   | Boolean      | DEFAULT true            |
+
+Enum ModelType: `TREND_PREDICTION`, `RISK_CLASSIFICATION`, `BEHAVIOR_CLUSTER`
+
+Constraint: `@@unique([student_id, academic_year_id, model_type, is_active])`
+
+Relasi:
+- `student` → Student
+- `academicYear` → AcademicYear
+
+Mapping tabel: `predicted_outcome`
+
+---
+
+# Model: MlModel
+
+Deskripsi: Menyimpan metadata model Machine Learning yang telah di-training.
+
+| Field        | Type         | Constraint              |
+|--------------|--------------|-------------------------|
+| id           | UUID         | PK                      |
+| name         | String(100)  | NOT NULL                |
+| model_type   | Enum         | NOT NULL                |
+| version      | Int          | NOT NULL                |
+| file_path    | String(255)  | Path file .onnx         |
+| metrics      | JSON         | MAE, RMSE, F1, akurasi  |
+| feature_list | JSON         | Daftar fitur yang digunakan|
+| is_active    | Boolean      | DEFAULT false           |
+| trained_at   | Timestamp    | DEFAULT now()           |
+
+Constraint: `@@unique([model_type, version])`
+
+Mapping tabel: `ml_model`
+
+---
+
+# Ringkasan Tabel
+
+| Tabel            | Nama Prisma        | Fungsi                                    |
+|------------------|--------------------|-------------------------------------------|
+| user             | User               | Menyimpan akun pengguna sistem            |
+| academic_year    | AcademicYear       | Menyimpan tahun ajaran                    |
+| class            | Class              | Menyimpan data kelas dan wali kelas       |
+| class_audit_log  | ClassAuditLog      | Log perubahan wali kelas                  |
+| student          | Student            | Menyimpan biodata siswa                   |
+| semester_record  | SemesterRecord     | Menyimpan riwayat akademik setiap semester|
+| subject_score    | SubjectScore       | Menyimpan nilai setiap mata pelajaran     |
+| attendance       | Attendance         | Menyimpan rekap kehadiran                 |
+| achievement      | Achievement        | Menyimpan prestasi siswa                  |
+| health_record    | HealthRecord       | Menyimpan data kesehatan siswa            |
+| ai_summary       | AiSummary          | Menyimpan hasil ringkasan AI              |
+| predicted_outcome| PredictedOutcome   | Menyimpan hasil prediksi ML               |
+| ml_model         | MlModel            | Menyimpan metadata model ML               |
+
+---
+
 # Ruang Lingkup MVP
 
-Database ini hanya mendukung fitur-fitur utama berikut:
+Database MVP mendukung fitur utama berikut:
 
 - Login pengguna
 - Manajemen kelas
@@ -347,13 +419,15 @@ Database ini hanya mendukung fitur-fitur utama berikut:
 - AI Student Transition Summary
 - Administrative Preparation Workspace
 - Preview Buku Induk
+- Rule-based alert system (early warning sederhana via logika backend)
+
+Tabel PredictedOutcome dan MlModel disiapkan untuk post-MVP dan hanya perlu di-migrate ketika ML features dikembangkan.
 
 Pengembangan lanjutan yang belum termasuk dalam skema database ini meliputi:
 
 - Chatbot AI
 - RAG (Retrieval-Augmented Generation)
 - Vector Database
-- Prediksi Prestasi Siswa
-- Early Warning System
+- Model ML online training
 - Dashboard Orang Tua
 - Notifikasi Otomatis

@@ -107,11 +107,21 @@ apps/backend/
 │   │   │   └── health-record.validation.ts
 │   │   │
 │   │   ├── ai/
-│   │   │   ├── ai.controller.ts           # Handler 3 fitur AI
+│   │   │   ├── ai.controller.ts           # Handler 3 fitur AI (LLM)
 │   │   │   ├── ai.service.ts              # Logika AI prompt & LLM call
 │   │   │   ├── ai.validation.ts
 │   │   │   ├── prompts.ts                 # Template prompt untuk tiap fitur
 │   │   │   └── llm.client.ts             # HTTP client untuk LLM API
+│   │   │
+│   │   ├── ml/
+│   │   │   ├── ml.controller.ts           # Handler prediksi & training
+│   │   │   ├── ml.service.ts              # Logika ML orchestrator
+│   │   │   ├── ml.validation.ts
+│   │   │   ├── features.ts                # Feature engineering queries
+│   │   │   ├── predictor.ts               # Load ONNX model → inference
+│   │   │   ├── trainer.ts                 # Training pipeline (batch)
+│   │   │   ├── rules.ts                   # Rule-based early warning logic
+│   │   │   └── models/                    # Serialized .onnx files
 │   │   │
 │   │   ├── buku-induk/
 │   │   │   ├── buku-induk.controller.ts   # Preview, workspace, validation

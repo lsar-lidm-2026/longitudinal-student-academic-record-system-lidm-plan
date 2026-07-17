@@ -11,14 +11,15 @@ Setiap sprint memiliki durasi 1 minggu (7 hari) dengan target deliverable yang j
 
 # Prioritas Pengembangan
 
-| Prioritas | Area                      | Alasan                                                                 |
-|-----------|---------------------------|------------------------------------------------------------------------|
-| P0        | Core Infrastructure       | Tanpa ini, sistem tidak bisa berjalan (auth, database, routing)        |
-| P1        | Master Data Management    | Data master diperlukan sebelum fitur akademik bisa bekerja              |
-| P2        | Academic Features         | Fitur inti longitudinal academic record                                 |
-| P3        | AI Features               | Fitur AI sebagai nilai tambah sistem                                   |
-| P4        | Admin & Workspace         | Dashboard, buku induk, validasi administrasi                           |
-| P5        | Refinement & Polish       | Perbaikan UI/UX, bug fixing, persiapan demo                            |
+| Prioritas | Area                      | Alasan                                                                     |
+|-----------|---------------------------|----------------------------------------------------------------------------|
+| P0        | Core Infrastructure       | Tanpa ini, sistem tidak bisa berjalan (auth, database, routing)            |
+| P1        | Master Data Management    | Data master diperlukan sebelum fitur akademik bisa bekerja                  |
+| P2        | Academic Features         | Fitur inti longitudinal academic record                                     |
+| P3        | AI Features               | Fitur AI (LLM) sebagai nilai tambah sistem                                 |
+| P4        | Admin & Workspace         | Dashboard, buku induk, validasi administrasi                               |
+| P5        | ML Features               | Rule-based alert, prediksi tren, early warning system (post-MVP)           |
+| P6        | Refinement & Polish       | Perbaikan UI/UX, bug fixing, persiapan demo                                |
 
 ---
 
@@ -172,7 +173,30 @@ Setiap sprint memiliki durasi 1 minggu (7 hari) dengan target deliverable yang j
 
 ---
 
-## Sprint 8: Polish & Demo Preparation (Minggu 8)
+## Sprint 8: ML Features (Minggu 8)
+**Fokus: Rule-based early warning, trend analysis, ML infrastructure**
+
+| Task ID | Task                                                | Priority | Module       | Estimasi |
+|---------|-----------------------------------------------------|----------|--------------|----------|
+| S8-T1   | Feature engineering queries (BE)                    | P5       | Backend      | 1 hari   |
+| S8-T2   | Rule-based early warning system (BE)                | P5       | Backend      | 1 hari   |
+| S8-T3   | Trend analysis endpoint (BE)                        | P5       | Backend      | 1 hari   |
+| S8-T4   | Endpoint ML model management (BE)                   | P5       | Backend      | 1 hari   |
+| S8-T5   | Migration PredictedOutcome & MlModel (DB)           | P5       | Backend      | 0.5 hari |
+| S8-T6   | Dashboard analitik: grafik tren (FE)                | P5       | Frontend     | 1 hari   |
+| S8-T7   | Heatmap risiko per kelas (FE)                       | P5       | Frontend     | 1 hari   |
+| S8-T8   | Notebook prototype ML (Colab)                       | P5       | ML           | 2 hari   |
+
+**Deliverable:**
+- Rule-based early warning (Aman/Waspada/Kritis)
+- Grafik tren nilai per siswa
+- Heatmap risiko per kelas
+- Prototype notebook ML (Colab) untuk model regresi + klasifikasi
+- Tabel PredictedOutcome dan MlModel siap
+
+---
+
+## Sprint 9: Polish & Demo Preparation (Minggu 9)
 **Fokus: Bug fixing, UI polish, data seeder demo, persiapan presentasi**
 
 | Task ID | Task                                        | Priority | Module       | Estimasi |
@@ -199,9 +223,10 @@ Setiap sprint memiliki durasi 1 minggu (7 hari) dengan target deliverable yang j
 | M1        | 1-2    | Akhir Minggu 2   | Foundation + Auth: sistem dapat digunakan dan login        |
 | M2        | 3      | Akhir Minggu 3   | Master Data: admin dapat mengelola data master             |
 | M3        | 4-5    | Akhir Minggu 5   | Academic Record: guru dapat input & lihat riwayat siswa   |
-| M4        | 6      | Akhir Minggu 6   | AI Features: 3 fitur AI berfungsi                         |
-| M5        | 7      | Akhir Minggu 7   | Administration: preview buku induk & validasi siap        |
-| M6        | 8      | Akhir Minggu 8   | Final: aplikasi siap demo untuk LIDM 2026                 |
+| M4        | 6      | Akhir Minggu 6   | AI Features: 3 fitur AI berfungsi                          |
+| M5        | 7      | Akhir Minggu 7   | Administration: preview buku induk & validasi siap         |
+| M6        | 8      | Akhir Minggu 8   | ML Features: early warning, trend analysis, notebook       |
+| M7        | 9      | Akhir Minggu 9   | Final: aplikasi siap demo untuk LIDM 2026                  |
 
 ---
 
@@ -213,9 +238,10 @@ Sprint 1 (Foundation)
         └── Sprint 3 (Master Data) ── bergantung pada auth
               └── Sprint 4 (Academic Record) ── bergantung pada student & class
                     ├── Sprint 5 (Timeline) ── bergantung pada semester record
-                    └── Sprint 6 (AI Features) ── bergantung pada data akademik
-                          └── Sprint 7 (Buku Induk) ── bergantung pada semua data
-                                └── Sprint 8 (Polish) ── bergantung pada seluruh fitur
+                    ├── Sprint 6 (AI/LLM) ── bergantung pada data akademik
+                    │     └── Sprint 8 (ML) ── bergantung pada data akademik longitudinal
+                    └── Sprint 7 (Buku Induk) ── bergantung pada semua data
+                          └── Sprint 9 (Polish) ── bergantung pada seluruh fitur
 ```
 
 ---

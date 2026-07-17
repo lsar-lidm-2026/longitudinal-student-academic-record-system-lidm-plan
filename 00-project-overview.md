@@ -106,7 +106,7 @@ Sistem dikembangkan untuk:
 - mempermudah monitoring perkembangan siswa
 - membantu pergantian wali kelas
 - membantu penyusunan administrasi Buku Induk
-- membantu guru memahami perkembangan siswa melalui Artificial Intelligence
+- membantu guru memahami perkembangan siswa melalui Artificial Intelligence dan Machine Learning
 
 ---
 
@@ -120,10 +120,18 @@ Fitur utama:
 - Dashboard Guru
 - Input Data Akademik
 - Student Timeline
-- AI Student Summary
-- AI Draft Deskripsi
-- AI Student Transition Summary
+- AI Student Summary (LLM)
+- AI Draft Deskripsi (LLM)
+- AI Student Transition Summary (LLM)
+- Rule-based Early Warning System
 - Preview Buku Induk
+
+Fitur ML lanjutan (post-MVP):
+
+- Prediksi Tren Nilai (regresi)
+- Early Warning System (klasifikasi)
+- Clustering Pola Belajar (unsupervised)
+- Rekomendasi Intervensi (hybrid rule + ML)
 
 ---
 
