@@ -11,7 +11,7 @@ Disusun berdasarkan dokumen perencanaan resmi: problem-analysis, functional-requ
 
 **Solusi:** sistem pencatat riwayat akademik siswa per semester (longitudinal), dengan AI sebagai *decision support* (bukan pengambil keputusan) untuk membuat ringkasan/draft narasi.
 
-**Status implementasi:** tahap Development — backend menggunakan Elysia (Bun), ORM Prisma, database MySQL/MariaDB.
+**Status implementasi:** tahap Development — backend menggunakan Elysia (Bun), ORM Prisma, database PostgreSQL.
 
 ---
 
@@ -23,7 +23,7 @@ Disusun berdasarkan dokumen perencanaan resmi: problem-analysis, functional-requ
 | Backend   | **Elysia** (Bun web framework)    |
 | Bahasa    | TypeScript                        |
 | ORM       | Prisma                            |
-| Database  | MySQL / MariaDB                   |
+| Database  | PostgreSQL                   |
 | Auth      | JWT (access + refresh token)      |
 | AI        | LLM API (OpenAI / Google Gemini)  |
 

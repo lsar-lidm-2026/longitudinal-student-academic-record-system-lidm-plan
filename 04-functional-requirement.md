@@ -450,7 +450,7 @@ Prioritas: P0 (Critical) → P5 (Post-MVP)
 |---------|-------------------------------------------------------|-----------|
 | NFR-22  | Frontend harus kompatibel dengan Chrome, Firefox, Edge| High      |
 | NFR-23  | Sistem harus berjalan di Bun runtime                  | High      |
-| NFR-24  | Database harus kompatibel dengan MySQL/MariaDB        | High      |
+| NFR-24  | Database harus kompatibel dengan PostgreSQL        | High      |
 
 ---
 

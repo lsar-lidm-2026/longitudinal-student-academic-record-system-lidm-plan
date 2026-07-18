@@ -114,14 +114,19 @@ apps/backend/
 │   │   │   └── llm.client.ts             # HTTP client untuk LLM API
 │   │   │
 │   │   ├── ml/
-│   │   │   ├── ml.controller.ts           # Handler prediksi & training
-│   │   │   ├── ml.service.ts              # Logika ML orchestrator
-│   │   │   ├── ml.validation.ts
-│   │   │   ├── features.ts                # Feature engineering queries
-│   │   │   ├── predictor.ts               # Load ONNX model → inference
-│   │   │   ├── trainer.ts                 # Training pipeline (batch)
-│   │   │   ├── rules.ts                   # Rule-based early warning logic
-│   │   │   └── models/                    # Serialized .onnx files
+│   │   │   ├── ml.controller.ts           # Handler analytics endpoints
+│   │   │   ├── ml.service.ts              # Logika analytics orchestrator
+│   │   │   ├── features.ts                # Feature computation queries
+│   │   │   ├── scoring-engine.ts          # Rule-based risk scoring
+│   │   │   ├── model-evaluator.ts         # Statistical metrics evaluator
+│   │   │   ├── trainer.ts                 # K-Means training pipeline
+│   │   │   ├── agent.ts                   # LLM explanation agent
+│   │   │   ├── onnx-runner.ts             # ONNX Runtime inference adapter
+│   │   │   └── models/                    # ML model implementations
+│   │   │       ├── decision-tree.ts       # Decision tree (unused)
+│   │   │       ├── k-means.ts             # K-Means clustering
+│   │   │       ├── linear-regression.ts   # OLS linear regression
+│   │   │       └── onnx-export.ts         # ONNX protobuf export
 │   │   │
 │   │   ├── buku-induk/
 │   │   │   ├── buku-induk.controller.ts   # Preview, workspace, validation
@@ -173,7 +178,7 @@ Controller (HTTP Layer)
 Service (Business Logic Layer)
     ↓ Validasi bisnis, orchestrasi data, panggil Prisma
 Prisma (Data Access Layer)
-    ↓ Query ke database MySQL/MariaDB
+    ↓ Query ke database PostgreSQL
 ```
 
 ---
@@ -304,7 +309,7 @@ apps/frontend/
 
 ```env
 # Database
-DATABASE_URL="mysql://user:password@localhost:3306/lsar_db"
+DATABASE_URL="postgres://user:password@localhost:3306/lsar_db"
 
 # JWT
 JWT_SECRET="your-secret-key-min-32-chars"

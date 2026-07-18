@@ -39,7 +39,7 @@ Setiap sprint memiliki durasi 1 minggu (7 hari) dengan target deliverable yang j
 
 **Deliverable:**
 - Backend Elysia + Prisma dapat berjalan dengan Bun
-- Database MySQL/MariaDB terhubung
+- Database PostgreSQL terhubung
 - Semua model Prisma sudah di-migrate
 - Frontend Next.js dapat berjalan
 - Layout dasar halaman sudah siap
@@ -185,13 +185,11 @@ Setiap sprint memiliki durasi 1 minggu (7 hari) dengan target deliverable yang j
 | S8-T5   | Migration PredictedOutcome & MlModel (DB)           | P5       | Backend      | 0.5 hari |
 | S8-T6   | Dashboard analitik: grafik tren (FE)                | P5       | Frontend     | 1 hari   |
 | S8-T7   | Heatmap risiko per kelas (FE)                       | P5       | Frontend     | 1 hari   |
-| S8-T8   | Notebook prototype ML (Colab)                       | P5       | ML           | 2 hari   |
 
 **Deliverable:**
 - Rule-based early warning (Aman/Waspada/Kritis)
 - Grafik tren nilai per siswa
 - Heatmap risiko per kelas
-- Prototype notebook ML (Colab) untuk model regresi + klasifikasi
 - Tabel PredictedOutcome dan MlModel siap
 
 ---
@@ -257,7 +255,7 @@ Sprint 1 (Foundation)
 | Tailwind CSS 4| Utility-first CSS                      |
 | Git           | Version control                        |
 | GitHub        | Repository & collaboration             |
-| MySQL/MariaDB | Database                               |
+| PostgreSQL | Database                               |
 
 ---
 

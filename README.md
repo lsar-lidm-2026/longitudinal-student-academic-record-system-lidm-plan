@@ -37,7 +37,7 @@ Sistem dilengkapi dengan fitur Artificial Intelligence sebagai *decision support
 | Frontend      | Next.js 16 + TypeScript + Tailwind CSS v4 |
 | Backend       | Elysia (Bun web framework)         |
 | ORM           | Prisma                             |
-| Database      | MySQL / MariaDB                    |
+| Database      | PostgreSQL                    |
 | Autentikasi   | JWT (manual)                       |
 | AI            | OpenAI API / Google Gemini API     |
 | Runtime       | Bun                                |
@@ -105,7 +105,7 @@ Lihat [16-implementation-roadmap.md](./16-implementation-roadmap.md) untuk detai
 ### Prasyarat
 
 - Bun (https://bun.sh)
-- MySQL / MariaDB
+- PostgreSQL
 
 ### Backend
 

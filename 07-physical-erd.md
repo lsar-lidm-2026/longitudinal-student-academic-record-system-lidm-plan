@@ -5,7 +5,7 @@
 
 Physical ERD merupakan tahap implementasi dari Logical ERD ke dalam struktur database yang akan digunakan oleh sistem.
 
-Dokumen ini telah diselaraskan dengan implementasi Prisma ORM dan database MySQL/MariaDB yang digunakan dalam pengembangan.
+Dokumen ini telah diselaraskan dengan implementasi Prisma ORM dan database PostgreSQL yang digunakan dalam pengembangan.
 
 Karena sistem ini merupakan MVP untuk Lomba Inovasi Digital Mahasiswa (LIDM), desain database dibuat sesederhana mungkin tanpa mengurangi kebutuhan utama sistem.
 

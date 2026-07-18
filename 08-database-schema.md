@@ -5,7 +5,7 @@
 
 Database Schema merupakan representasi struktur database yang akan digunakan dalam implementasi sistem.
 
-Skema ini ditulis dalam format Prisma Schema Language dan diimplementasikan menggunakan Prisma ORM dengan database MySQL/MariaDB.
+Skema ini ditulis dalam format Prisma Schema Language dan diimplementasikan menggunakan Prisma ORM dengan database PostgreSQL.
 
 Karena sistem ini merupakan Minimum Viable Product (MVP) untuk Lomba Inovasi Digital Mahasiswa (LIDM), skema database hanya mencakup kebutuhan inti sistem tanpa menambahkan komponen yang belum diperlukan.
 

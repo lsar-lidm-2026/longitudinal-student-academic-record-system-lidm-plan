@@ -1,7 +1,7 @@
 # Sequence Diagram
 ## Longitudinal Student Academic Record Berbasis Artificial Intelligence
 
-Pendahuluan: Sequence Diagram berikut menggambarkan interaksi antar komponen sistem secara detail untuk setiap fitur utama. Setiap diagram menunjukkan urutan pesan antara User, Frontend (Next.js), Backend (Elysia), Database (MySQL via Prisma), dan AI Service (LLM API).
+Pendahuluan: Sequence Diagram berikut menggambarkan interaksi antar komponen sistem secara detail untuk setiap fitur utama. Setiap diagram menunjukkan urutan pesan antara User, Frontend (Next.js), Backend (Elysia), Database (PostgreSQL via Prisma), dan AI Service (LLM API).
 
 ---
 

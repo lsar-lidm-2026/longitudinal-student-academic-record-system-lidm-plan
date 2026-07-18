@@ -36,7 +36,7 @@ Sistem tidak dirancang untuk menggantikan Dapodik maupun sistem administrasi pem
           ┌──────────────────┬──────────────────┬─────────────────┐
           │                  │                  │                 │
           ▼                  ▼                  ▼                 ▼
-   MySQL/MariaDB        AI Service         ML Engine        Authentication
+   PostgreSQL        AI Service         ML Engine        Authentication
    (Prisma ORM)        (LLM API)       (ONNX Runtime)      & Authorization
           │                  │                  │               (JWT)
           └──────────────────┴──────────────────┘
@@ -107,13 +107,13 @@ Fungsi
 
 ---
 
-## 4. Database (MySQL/MariaDB)
+## 4. Database (PostgreSQL)
 
 Database menyimpan seluruh data sistem.
 
 Teknologi
 
-- MySQL atau MariaDB
+- PostgreSQL
 - Prisma ORM (type-safe database client)
 
 Data yang disimpan
@@ -156,13 +156,13 @@ AI tidak mengubah data akademik siswa (read-only terhadap data sumber).
 
 ## 6. ML Engine (Analitik - Prediktif)
 
-Machine Learning sebagai lapisan analitik prediktif di atas data longitudinal.
+Machine Learning sebagai lapisan analitik di atas data longitudinal.
 
 Teknologi
 
-- Python (prototype/Colab) → ONNX Runtime (integrasi)
-- Scikit-learn untuk training model
-- onnxruntime-node untuk inference di backend Bun/Elysia
+- TypeScript (rule-based scoring + OLS regression + K-Means)
+- ONNX Runtime (onnxruntime-node) untuk inference K-Means
+- Tidak ada Python/Colab — semua statistik dihitung langsung di backend
 
 Fungsi
 
@@ -262,11 +262,11 @@ Guru → Frontend → Backend → Database → Menyusun data → Preview → Gur
 | Styling          | Tailwind CSS v4                             |
 | Backend          | Elysia (Bun web framework)                  |
 | ORM              | Prisma                                      |
-| Database         | MySQL / MariaDB                             |
+| Database         | PostgreSQL                             |
 | Autentikasi      | JWT (manual, tanpa library tambahan)        |
 | AI (LLM)         | OpenAI API / Google Gemini API              |
 | ML Engine        | ONNX Runtime (onnxruntime-node)             |
-| ML Training      | Python + Scikit-learn (Colab/Notebook)      |
+| ML Training      | TypeScript (K-Means, OLS regression)        |
 | Runtime          | Bun                                         |
 
 ---
@@ -277,7 +277,7 @@ Guru → Frontend → Backend → Database → Menyusun data → Preview → Gur
 |-----------------|-----------------|--------------------------------------|
 | User            | Frontend        | Interaksi antarmuka                  |
 | Frontend        | Backend         | REST API (HTTP JSON)                 |
-| Backend         | MySQL/MariaDB   | CRUD Data via Prisma ORM             |
+| Backend         | PostgreSQL   | CRUD Data via Prisma ORM             |
 | Backend         | AI Service      | Generate narasi via LLM API          |
 | AI Service      | Backend         | Hasil narasi                         |
 | Backend         | ML Engine       | Load model → inference               |
@@ -291,7 +291,7 @@ Guru → Frontend → Backend → Database → Menyusun data → Preview → Gur
 
 | Variable               | Deskripsi                               |
 |------------------------|-----------------------------------------|
-| DATABASE_URL           | Koneksi MySQL/MariaDB                   |
+| DATABASE_URL           | Koneksi PostgreSQL                   |
 | JWT_SECRET             | Secret key untuk JWT                    |
 | JWT_EXPIRES_IN         | Masa berlaku token (contoh: 7d)         |
 | LLM_API_KEY            | API Key LLM (OpenAI/Gemini)             |
@@ -362,4 +362,4 @@ Apabila sistem dikembangkan lebih lanjut, beberapa komponen dapat ditambahkan.
 
 # Kesimpulan
 
-System Architecture dirancang menggunakan pendekatan monolitik client-server sederhana: satu frontend (Next.js), satu backend (Elysia/Bun), satu database (MySQL via Prisma), dan satu layanan Artificial Intelligence (LLM API eksternal). Pendekatan ini cukup untuk mendukung seluruh kebutuhan Minimum Viable Product (MVP), sekaligus menyediakan fondasi yang mudah dikembangkan pada tahap berikutnya tanpa mengubah arsitektur utama sistem.
+System Architecture dirancang menggunakan pendekatan monolitik client-server sederhana: satu frontend (Next.js), satu backend (Elysia/Bun), satu database (PostgreSQL via Prisma), dan satu layanan Artificial Intelligence (LLM API eksternal). Pendekatan ini cukup untuk mendukung seluruh kebutuhan Minimum Viable Product (MVP), sekaligus menyediakan fondasi yang mudah dikembangkan pada tahap berikutnya tanpa mengubah arsitektur utama sistem.
